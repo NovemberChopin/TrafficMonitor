@@ -36,20 +36,42 @@ public:
 
 	void initial();
 
+protected:
+	bool eventFilter(QObject *obj, QEvent *event);
+
 public Q_SLOTS:
 	void connectByConfig(QString ros_address, QString ros_port, QString ros_topic);
 	// void on_button_connect_clicked(bool check );
 	// void on_checkbox_use_environment_stateChanged(int state);
 
-    void updateLogcamera();
+	// 添加第一个相机
+	// void setFirstCamera(std::string nodeName, std::string topic);
+	// void setSecondCamera(std::string nodeName, std::string topic);
+	// void setThirdCamera(std::string nodeName, std::string topic);
+
+	// 处理接收图片的信号槽
+    void setImage1(cv::Mat image);
+	void setImage2(cv::Mat image);
+	
 	void exit();
 private:
 	Ui::MainWindowDesign ui;
-  	QNode qnode;
+  	// QNode qnode;
+	int argc;
+	char** argv;
   	mutable QMutex qimage_mutex_;
-	ConfigPanel *configP;
 
+	ConfigPanel *configP;
 	ObjectDetection objectD;
+
+	// 窗口尺寸
+	int labelWidth, labelHeight;
+	// 临时记录正常尺寸大小
+    int tempWidth, tempHeight;
+	bool video0Max;
+    bool video1Max;
+    bool video2Max;
+    bool video3Max;
 };
 
 }  // namespace mul_t

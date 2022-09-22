@@ -71,27 +71,22 @@ void ObjectDetection::runODModel(cv::Mat& frame) {
 
 	//Sets the input to the network
 	net.setInput(blob);
-    clock_t start, mid, end;
-    start = clock();
 	// Runs the forward pass to get output of the output layers
 	std::vector<cv::Mat> outs;
 	net.forward(outs, getOutputsNames(net));
-    mid = clock();
 	// Remove the bounding boxes with low confidence
-    std::cout << "outs size: " << outs.size() << " boxes size before: " << boxes.size() << " ";
-    postprocess(frame, outs, this->boxes);
-    end = clock();
+    postprocess(frame, outs);
     // std::cout << "forward time: " << double(mid-start)/CLOCKS_PER_SEC << " after time: " << double(end-mid)/CLOCKS_PER_SEC << std::endl;
 	// Put efficiency information. 
     // The function getPerfProfile returns the overall time for inference(t) 
     // and the timings for each of the layers(in layersTimes)
-	vector<double> layersTimes;
-	double freq = getTickFrequency() / 1000;
-	double t = net.getPerfProfile(layersTimes) / freq;
-	string label = format("Inference time for a frame : %.2f ms", t);
-	putText(frame, label, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
+	// vector<double> layersTimes;
+	// double freq = getTickFrequency() / 1000;
+	// double t = net.getPerfProfile(layersTimes) / freq;
+	// string label = format("Inference time for a frame : %.2f ms", t);
+	// putText(frame, label, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
 
-    std::cout << "boxes size end: " << boxes.size() << std::endl;
+    // std::cout << "boxes size end: " << boxes.size() << std::endl;
 
     // 清空跟踪对象
     // if (!multiTracker->empty()) {
@@ -104,11 +99,11 @@ void ObjectDetection::runODModel(cv::Mat& frame) {
 
 
 // Remove the bounding boxes with low confidence using non-maxima suppression
-void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, vector<Rect> &boxes)
+void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs)
 {
     vector<int> classIds;
     vector<float> confidences;
-    // vector<Rect> boxes;
+    vector<Rect> boxes;
     
     for (size_t i = 0; i < outs.size(); ++i)
     {

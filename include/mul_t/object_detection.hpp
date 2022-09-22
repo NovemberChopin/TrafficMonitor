@@ -43,7 +43,7 @@ private:
 
 public:
     int index = 0;
-    vector<Rect> boxes;
+    // vector<Rect> boxes;
 
 	vector<Rect> track_boxes;
 	vector<int> track_classIds;
@@ -56,7 +56,7 @@ public:
 
     void runODModel(cv::Mat& frame);
 	vector<String> getOutputsNames(const Net& net);
-	void postprocess(Mat& frame, const vector<Mat>& outs, vector<Rect>& boxes);
+	void postprocess(Mat& frame, const vector<Mat>& outs);
 	void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame);
 
 	void runTrackerModel(cv::Mat & frame);

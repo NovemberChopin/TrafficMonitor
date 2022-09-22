@@ -28,6 +28,10 @@ public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
 	bool init();
+
+	bool init(std::string nodeName, std::string topic);
+
+	bool init(const std::string &master_url, const std::string &host_url, const std::string &topic);
 	// bool init(const std::string &master_url, const std::string &host_url);
 	void run();
 
@@ -37,7 +41,9 @@ public:
 
 Q_SIGNALS:
     void rosShutdown();
-    void loggingCamera();
+    void getImage1(cv::Mat);
+	void getImage2(cv::Mat);
+	
 private:
 	int init_argc;
 	char** init_argv;

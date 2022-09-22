@@ -39,15 +39,14 @@ QNode::~QNode() {
 }
 
 
-
-
 void QNode::myCallback_img(const sensor_msgs::ImageConstPtr &msg)
 {
     try
     {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
         img = cv_ptr->image;
-        Q_EMIT loggingCamera();
+		std::cout << ros::this_node::getName() << std::endl;
+        Q_EMIT getImage1(img);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -69,22 +68,35 @@ bool QNode::init() {
 	return true;
 }
 
-// bool QNode::init(const std::string &master_url, const std::string &host_url) {
-// 	std::map<std::string,std::string> remappings;
-// 	remappings["__master"] = master_url;
-// 	remappings["__hostname"] = host_url;
-// 	ros::init(remappings,"mul_t");
-// 	if ( ! ros::master::check() ) {
-// 		return false;
-// 	}
-// 	ros::start();
-// 	ros::NodeHandle n;
-//   	image_transport::ImageTransport it(n);
+bool QNode::init(std::string nodeName, std::string topic) {
+	ros::init(init_argc,init_argv, nodeName);
+	if ( ! ros::master::check() ) {
+		return false;
+	}
+	ros::start();
+	ros::NodeHandle n;
+	image_transport::ImageTransport it(n);
+	image_sub = it.subscribe(topic, 1, &QNode::myCallback_img, this);
+	this->start();
+	return true;
+}
 
-//   	image_sub = it.subscribe("/camera/hik_image",100,&QNode::myCallback_img,this);
-// 	start();
-// 	return true;
-// }
+bool QNode::init(const std::string &master_url, const std::string &host_url, const std::string &topic) {
+	std::map<std::string,std::string> remappings;
+	remappings["__master"] = master_url;
+	remappings["__hostname"] = host_url;
+	ros::init(remappings,"mul_t");
+	if ( ! ros::master::check() ) {
+		return false;
+	}
+	ros::start();
+	ros::NodeHandle n;
+  	image_transport::ImageTransport it(n);
+
+  	image_sub = it.subscribe(topic, 1, &QNode::myCallback_img, this);
+	start();
+	return true;
+}
 
 void QNode::run() {
   	ros::spin();

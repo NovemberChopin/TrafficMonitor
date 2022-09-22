@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # 父进程创建缓冲栈，并传给各个子进程：
     q = Manager().list()
-    url = "rtsp://admin:js123456@192.168.50.64:554/h264/ch1/main/av_stream"
+    url = " "
     pw = Process(target=write, args=(q, url, 100))
     pr = Process(target=read, args=(q,))
     # 启动子进程pw，写入:
