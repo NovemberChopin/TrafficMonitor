@@ -20,16 +20,13 @@ using namespace Qt;
 
 MainWindow::~MainWindow() {}
 
-void MainWindow::exit() { close();}
-
 MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 	: QMainWindow(parent)
 	, qnode(argc, argv)
 {
 	ui.setupUi(this); 
-	
     configP = new ConfigPanel();        // 初始化 connect 页面
-    objectD = new ObjectDetection();    // 初始化 检测对象对象
+    objectD = new ObjectDetection(2);    // 初始化 检测对象对象
 
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
@@ -80,20 +77,6 @@ void MainWindow::initial() {
 
 }
 
-void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString ros_topic) {
-    qDebug() << ros_address;
-    qDebug() << ros_port;
-    qDebug() << ros_topic;
-
-    if (!qnode.init()) {
-        // 连接失败
-        showNoMasterMessage();
-    } else {
-        // 连接成功
-        ui.btn_config->setEnabled(false);
-    }
-}
-
 void MainWindow::setEventTable() {
     qDebug() << "setEventTable---";
     ui.consoleTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -115,17 +98,7 @@ void MainWindow::consoleLog(QString level, QString result, QString opera) {
   ui.consoleTable->scrollToBottom(); // 滑动自动滚到最底部
 }
 
-void MainWindow::showConfigPanel() {
-    std::cout << "Show Config Panel" << std::endl;
-    configP->show();
-}
 
-void MainWindow::Show_img(QImage image, QByteArray res)
-{
-    QImage mimage = image.scaled(ui.camera_0->width(),ui.camera_0->height());
-    ui.camera_0->setScaledContents(true);
-    ui.camera_0->setPixmap(QPixmap::fromImage(mimage));
-}
 
 void MainWindow::showNoMasterMessage() {
 	QMessageBox msgBox;
@@ -165,47 +138,34 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     return QObject::eventFilter(obj, event);
 }
 
+/******************** 槽函数 *********************/
 
-/*
- * These triggers whenever the button is clicked, regardless of whether it
- * is already checked or not.
- */
+void MainWindow::showConfigPanel() {
+    std::cout << "Show Config Panel" << std::endl;
+    configP->show();
+}
 
-// void MainWindow::on_button_connect_clicked(bool check ) {
-// 	if ( ui.checkbox_use_environment->isChecked() ) {
-// 		if ( !qnode.init() ) {
-// 			showNoMasterMessage();
-// 		} else {
-// 			ui.button_connect->setEnabled(false);
-// 		}
-// 	} else {
-// 		if ( ! qnode.init(ui.line_edit_master->text().toStdString(),
-// 				   ui.line_edit_host->text().toStdString()) ) {
-// 			showNoMasterMessage();
-// 		} else {
-// 			ui.button_connect->setEnabled(false);
-// 			ui.line_edit_master->setReadOnly(true);
-// 			ui.line_edit_host->setReadOnly(true);
-// 		}
-// 	}
-// }
+void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString ros_topic) {
+    qDebug() << ros_address;
+    qDebug() << ros_port;
+    qDebug() << ros_topic;
 
-
-// void MainWindow::on_checkbox_use_environment_stateChanged(int state) {
-// 	bool enabled;
-// 	if ( state == 0 ) {
-// 		enabled = true;
-// 	} else {
-// 		enabled = false;
-// 	}
-// 	ui.line_edit_master->setEnabled(enabled);
-// 	ui.line_edit_host->setEnabled(enabled);
-// }
-
+    if (!qnode.init()) {
+        // 连接失败
+        showNoMasterMessage();
+    } else {
+        // 连接成功
+        ui.btn_config->setEnabled(false);
+    }
+}
 
 void MainWindow::setImage2(cv::Mat image) {
     qimage_mutex_.lock();
     cv::Mat showImg;
+
+    int cam_index = 1;
+    int interval = 3;
+    processOD(image, interval, cam_index);
 
     cvtColor(image, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
@@ -216,32 +176,14 @@ void MainWindow::setImage2(cv::Mat image) {
     qimage_mutex_.unlock();
 }
 
-
-//update camera topic messages
 void MainWindow::setImage1(cv::Mat image)
 {   
     qimage_mutex_.lock();
     cv::Mat showImg;
-    
-    if (objectD->index % 3 == 0) {
-        objectD->track_boxes.clear();
-        objectD->track_classIds.clear();
-        objectD->track_confidences.clear();
-        objectD->runODModel(image);
-    } else {
-        // 跟踪算法
-        // objectD->runTrackerModel(image);
-    }
-    objectD->index = (objectD->index + 1) % 30;
 
-    for (unsigned int i=0; i<objectD->track_boxes.size(); i++) {
-        int x = objectD->track_boxes[i].x;
-        int y = objectD->track_boxes[i].y;
-        int width = objectD->track_boxes[i].width;
-        int height = objectD->track_boxes[i].height;
-        objectD->drawPred(objectD->track_classIds[i], objectD->track_confidences[i], 
-                        x, y, x+width, y+height, image);
-    }
+    int cam_index = 0;
+    int interval = 3;
+    processOD(image, interval, cam_index);
     
     cvtColor(image, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
@@ -252,6 +194,41 @@ void MainWindow::setImage1(cv::Mat image)
     qimage_mutex_.unlock();
 }
 
+/**
+ * @brief 处理检测（跟踪）过程
+ * 
+ * @param image 需要检测的图像
+ * @param interval 检测间隔
+ * @param cam_index 对应摄像头的index
+ */
+void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
+    // 当前相机的检测结果
+    DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+
+    if (detec_info->index % interval == 0) {
+        detec_info->track_boxes.clear();
+        detec_info->track_classIds.clear();
+        detec_info->track_confidences.clear();
+        objectD->runODModel(image, cam_index);
+    } else {
+        // 跟踪算法
+        // objectD->runTrackerModel(image);
+    }
+    detec_info->index = (detec_info->index + 1) % 30;
+    
+    for (unsigned int i=0; i< detec_info->track_boxes.size(); i++) {
+        int x = detec_info->track_boxes[i].x;
+        int y = detec_info->track_boxes[i].y;
+        int width = detec_info->track_boxes[i].width;
+        int height = detec_info->track_boxes[i].height;
+        objectD->drawPred(detec_info->track_classIds[i], detec_info->track_confidences[i], 
+                        x, y, x+width, y+height, image);
+    }
+}
+
+void MainWindow::exit() { 
+    close();
+}
 
 // void MainWindow::ReadSettings() {
 //     QSettings settings("Qt-Ros Package", "mul_t");

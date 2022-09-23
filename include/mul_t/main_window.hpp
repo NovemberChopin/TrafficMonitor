@@ -27,12 +27,13 @@ public:
 	// void closeEvent(QCloseEvent *event); // Overloaded function
 	void showNoMasterMessage();
 
-	void Show_img(QImage image, QByteArray res);
-
 	void setEventTable();
+
 	void consoleLog(QString level, QString result, QString opera);
 
 	void showConfigPanel();
+
+	void processOD(cv::Mat &image, int interval, int cam_index);
 
 	void initial();
 
@@ -40,9 +41,8 @@ protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 
 public Q_SLOTS:
+	// 处理配置弹窗
 	void connectByConfig(QString ros_address, QString ros_port, QString ros_topic);
-	// void on_button_connect_clicked(bool check );
-	// void on_checkbox_use_environment_stateChanged(int state);
 
 	// 处理接收图片的信号槽
     void setImage1(cv::Mat image);
@@ -51,11 +51,10 @@ public Q_SLOTS:
 	void exit();
 private:
 	Ui::MainWindowDesign ui;
-  	QNode qnode;
   	mutable QMutex qimage_mutex_;
-
-	ConfigPanel *configP;
-	ObjectDetection *objectD;
+	QNode qnode;				// ros节点相关
+	ConfigPanel *configP;		// 配置对话框
+	ObjectDetection *objectD;	// 检测（跟踪）算法对象
 
 	// 窗口尺寸
 	int labelWidth, labelHeight;

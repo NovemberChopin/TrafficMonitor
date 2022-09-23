@@ -21,6 +21,16 @@ using namespace cv;
 using namespace dnn;
 using namespace std;
 
+struct DetectionInfo
+{
+	int index;
+	vector<Rect> track_boxes;
+	vector<int> track_classIds;
+	vector<float> track_confidences;
+	DetectionInfo(int index) : index(index) {}
+};
+
+
 class ObjectDetection
 {
 private:
@@ -42,23 +52,23 @@ private:
 	vector<string> trackerTypes = {"BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"}; 
 
 public:
-    int index = 0;
-    // vector<Rect> boxes;
+	// vector<Rect> track_boxes;
+	// vector<int> track_classIds;
+	// vector<float> track_confidences;
 
-	vector<Rect> track_boxes;
-	vector<int> track_classIds;
-	vector<float> track_confidences;
+	vector<DetectionInfo*> detecRes;
 
 	Ptr<MultiTracker> multiTracker;
 
-    ObjectDetection(/* args */);
+    ObjectDetection(int camera_num);
     ~ObjectDetection();
 
-    void runODModel(cv::Mat& frame);
+	// 物体检测相关函数
+    void runODModel(cv::Mat& frame, int cam_index);
 	vector<String> getOutputsNames(const Net& net);
-	void postprocess(Mat& frame, const vector<Mat>& outs);
+	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index);
 	void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame);
-
+	// 物体跟踪相关函数
 	void runTrackerModel(cv::Mat & frame);
 	Ptr<Tracker> createTrackerByName(string trackerType);
 };

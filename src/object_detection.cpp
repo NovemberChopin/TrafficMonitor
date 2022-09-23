@@ -2,8 +2,15 @@
 #include "../include/mul_t/object_detection.hpp"
 
 
-ObjectDetection::ObjectDetection() {
-
+ObjectDetection::ObjectDetection(int camera_num) {
+    std::cout << "ObjectDetection" << std::endl;
+    // 有两个相机
+    for (int i=0; i< camera_num; i++) {
+        DetectionInfo *tempInfo = new DetectionInfo(0); 
+        detecRes.push_back(tempInfo);
+    }
+        
+    std::cout << "ObjectDetection after" << std::endl;
     ifstream ifs(classesFile.c_str());
     string line;
     while (getline(ifs, line)) 
@@ -63,8 +70,13 @@ void ObjectDetection::runTrackerModel(cv::Mat& frame) {
     // imshow("Tracker", frame);
 }
 
-
-void ObjectDetection::runODModel(cv::Mat& frame) {
+/**
+ * @brief 物体检测主函数
+ * 
+ * @param frame 
+ * @param cam_index 当前相机的 index
+ */
+void ObjectDetection::runODModel(cv::Mat& frame, int cam_index) {
 	cv::Mat blob;
 	// Create a 4D blob from a frame.
     blobFromImage(frame, blob, 1/255.0, cv::Size(inpWidth, inpHeight), Scalar(0,0,0), true, false);
@@ -75,7 +87,7 @@ void ObjectDetection::runODModel(cv::Mat& frame) {
 	std::vector<cv::Mat> outs;
 	net.forward(outs, getOutputsNames(net));
 	// Remove the bounding boxes with low confidence
-    postprocess(frame, outs);
+    postprocess(frame, outs, cam_index);
     // std::cout << "forward time: " << double(mid-start)/CLOCKS_PER_SEC << " after time: " << double(end-mid)/CLOCKS_PER_SEC << std::endl;
 	// Put efficiency information. 
     // The function getPerfProfile returns the overall time for inference(t) 
@@ -98,8 +110,14 @@ void ObjectDetection::runODModel(cv::Mat& frame) {
 }
 
 
-// Remove the bounding boxes with low confidence using non-maxima suppression
-void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs)
+/**
+ * @brief Remove the bounding boxes with low confidence using non-maxima suppression
+ * 
+ * @param frame 
+ * @param outs network output
+ * @param cam_index the index of the camera
+ */
+void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_index)
 {
     vector<int> classIds;
     vector<float> confidences;
@@ -144,9 +162,12 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs)
         int idx = indices[i];
         Rect box = boxes[idx];
         if(classIds[idx]>=0 && classIds[idx]<=7) {
-            track_boxes.push_back(boxes[idx]);
-            track_classIds.push_back(classIds[idx]);
-            track_confidences.push_back(confidences[idx]);
+            detecRes.at(cam_index)->track_boxes.push_back(boxes[idx]);
+            detecRes.at(cam_index)->track_classIds.push_back(classIds[idx]);
+            detecRes.at(cam_index)->track_confidences.push_back(confidences[idx]);
+            // track_boxes.push_back(boxes[idx]);
+            // track_classIds.push_back(classIds[idx]);
+            // track_confidences.push_back(confidences[idx]);
             drawPred(classIds[idx], confidences[idx], box.x, box.y,
                     box.x + box.width, box.y + box.height, frame);
         }

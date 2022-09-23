@@ -117,7 +117,7 @@ void QNode::run() {
 	// spinner.spin();
 
 
-	// 订阅多个Topic，每个Subscriber一个Callback queue
+	// 订阅多个Topic，每个Subscriber有一个Callback queue
 	ros::NodeHandle n_a;
 	ros::CallbackQueue callback_queue_a;
 	n_a.setCallbackQueue(&callback_queue_a);
