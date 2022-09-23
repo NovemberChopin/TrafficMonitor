@@ -44,11 +44,6 @@ public Q_SLOTS:
 	// void on_button_connect_clicked(bool check );
 	// void on_checkbox_use_environment_stateChanged(int state);
 
-	// 添加第一个相机
-	// void setFirstCamera(std::string nodeName, std::string topic);
-	// void setSecondCamera(std::string nodeName, std::string topic);
-	// void setThirdCamera(std::string nodeName, std::string topic);
-
 	// 处理接收图片的信号槽
     void setImage1(cv::Mat image);
 	void setImage2(cv::Mat image);
@@ -56,13 +51,11 @@ public Q_SLOTS:
 	void exit();
 private:
 	Ui::MainWindowDesign ui;
-  	// QNode qnode;
-	int argc;
-	char** argv;
+  	QNode qnode;
   	mutable QMutex qimage_mutex_;
 
 	ConfigPanel *configP;
-	ObjectDetection objectD;
+	ObjectDetection *objectD;
 
 	// 窗口尺寸
 	int labelWidth, labelHeight;

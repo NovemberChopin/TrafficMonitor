@@ -39,20 +39,29 @@ QNode::~QNode() {
 }
 
 
-void QNode::myCallback_img(const sensor_msgs::ImageConstPtr &msg)
-{
-    try
-    {
+void QNode::Callback_1(const sensor_msgs::ImageConstPtr &msg) {
+	cv::Mat img;
+    try {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
         img = cv_ptr->image;
-		std::cout << ros::this_node::getName() << std::endl;
         Q_EMIT getImage1(img);
-    }
-    catch (cv_bridge::Exception& e)
-    {
+    } catch (cv_bridge::Exception& e) {
         ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
     }
 }
+
+
+void QNode::Callback_2(const sensor_msgs::ImageConstPtr &msg) {
+	cv::Mat img;
+    try {
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
+        img = cv_ptr->image;
+        Q_EMIT getImage2(img);
+    } catch (cv_bridge::Exception& e) {
+        ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+    }
+}
+
 
 bool QNode::init() {
 	ros::init(init_argc,init_argv,"Monitor");
@@ -60,11 +69,8 @@ bool QNode::init() {
 		return false;
 	}
 	ros::start();
-	ros::NodeHandle n;
-  	image_transport::ImageTransport it(n);
-    // image_sub = it.subscribe("/camera/hik_image", 5, &QNode::myCallback_img, this);
-  	image_sub = it.subscribe("/hik_cam_node/hik_camera", 5, &QNode::myCallback_img, this);
-	start();
+
+	this->start();	// 启动线程
 	return true;
 }
 
@@ -76,7 +82,7 @@ bool QNode::init(std::string nodeName, std::string topic) {
 	ros::start();
 	ros::NodeHandle n;
 	image_transport::ImageTransport it(n);
-	image_sub = it.subscribe(topic, 1, &QNode::myCallback_img, this);
+	image_sub = it.subscribe(topic, 1, &QNode::Callback_1, this);
 	this->start();
 	return true;
 }
@@ -93,13 +99,46 @@ bool QNode::init(const std::string &master_url, const std::string &host_url, con
 	ros::NodeHandle n;
   	image_transport::ImageTransport it(n);
 
-  	image_sub = it.subscribe(topic, 1, &QNode::myCallback_img, this);
+  	image_sub = it.subscribe(topic, 1, &QNode::Callback_1, this);
 	start();
 	return true;
 }
 
 void QNode::run() {
-  	ros::spin();
+  	// ros::spin();
+
+	// 订阅多个Topic，多个Spinner threads
+	// ros::NodeHandle n;
+  	// image_transport::ImageTransport it(n);
+    // // image_sub = it.subscribe("/camera/hik_image", 5, &QNode::Callback_1, this);
+  	// image_sub = it.subscribe("/hik_cam_node/hik_camera", 5, &QNode::Callback_1, this);
+	// image_sub2 = it.subscribe("/hik_image", 1, &QNode::Callback_2, this);
+	// ros::MultiThreadedSpinner spinner(2);
+	// spinner.spin();
+
+
+	// 订阅多个Topic，每个Subscriber一个Callback queue
+	ros::NodeHandle n_a;
+	ros::CallbackQueue callback_queue_a;
+	n_a.setCallbackQueue(&callback_queue_a);
+	image_transport::ImageTransport it(n_a);
+	image_sub = it.subscribe("/hik_cam_node/hik_camera", 1, &QNode::Callback_1, this);
+	std::thread spinner_thread_a([&callback_queue_a](){
+		ros::SingleThreadedSpinner spinner_a;
+		spinner_a.spin(&callback_queue_a);
+	});
+
+	ros::NodeHandle n_b;
+	ros::CallbackQueue callback_queue_b;
+	n_b.setCallbackQueue(&callback_queue_b);
+	image_transport::ImageTransport it_b(n_b);
+	image_sub2 = it_b.subscribe("/hik_image", 1, &QNode::Callback_2, this);
+	std::thread spinner_thread_b([&callback_queue_b](){
+		ros::SingleThreadedSpinner spinner_b;
+		spinner_b.spin(&callback_queue_b);
+	});
+	spinner_thread_a.join();
+	spinner_thread_b.join();
 }
 
 

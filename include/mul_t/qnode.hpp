@@ -7,12 +7,15 @@
 #ifndef Q_MOC_RUN
 #include <ros/ros.h>
 #endif
+
+#include <ros/callback_queue.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <string>
 
 #include <QThread>
+#include <thread>
 #include <std_msgs/String.h>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/core.hpp>
@@ -35,19 +38,23 @@ public:
 	// bool init(const std::string &master_url, const std::string &host_url);
 	void run();
 
-  	void myCallback_img(const sensor_msgs::ImageConstPtr& msg);//camera callback function
+  	void Callback_1(const sensor_msgs::ImageConstPtr &msg);//camera callback function
+	void Callback_2(const sensor_msgs::ImageConstPtr &msg);
 
-  	cv::Mat img;
+  	// cv::Mat img;
 
 Q_SIGNALS:
     void rosShutdown();
     void getImage1(cv::Mat);
 	void getImage2(cv::Mat);
-	
+
 private:
 	int init_argc;
 	char** init_argv;
+
+	
   	image_transport::Subscriber image_sub;
+	image_transport::Subscriber image_sub2;
 };
 
 

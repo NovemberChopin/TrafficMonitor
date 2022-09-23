@@ -18,12 +18,37 @@ namespace mul_t {
 
 using namespace Qt;
 
+MainWindow::~MainWindow() {}
+
+void MainWindow::exit() { close();}
 
 MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 	: QMainWindow(parent)
-	, argc(argc), argv(argv)
+	, qnode(argc, argv)
 {
 	ui.setupUi(this); 
+	
+    configP = new ConfigPanel();        // 初始化 connect 页面
+    objectD = new ObjectDetection();    // 初始化 检测对象对象
+
+    // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
+    QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
+    QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
+
+    QObject::connect(&qnode, SIGNAL(getImage1(cv::Mat)), this, SLOT(setImage1(cv::Mat)));
+    QObject::connect(&qnode, SIGNAL(getImage2(cv::Mat)), this, SLOT(setImage2(cv::Mat)));
+
+    //接收登录页面传来的数据
+    connect(configP, SIGNAL(ros_input_over(QString, QString, QString)), 
+            this, SLOT(connectByConfig(QString, QString, QString)));
+
+    // 初始化
+    initial();
+}
+
+void MainWindow::initial() {
+    setWindowIcon(QIcon(":/images/icon.png"));
+    setWindowTitle(tr("视频场景监控"));
 
     // 设置页面以全屏显示
     QDesktopWidget desktop;
@@ -31,6 +56,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     int screenY = desktop.availableGeometry().height();
     this->resize(screenX, screenY);
 
+    // 设置可变相机画面大小
     tempWidth = labelWidth = ui.camera->width();
     tempHeight = labelHeight = ui.camera_0->height();
     // std::cout << "init temp: "<< tempWidth << " label: " << labelWidth << std::endl;
@@ -42,59 +68,10 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     ui.camera_1->installEventFilter(this);
     ui.camera_2->installEventFilter(this);
     ui.camera_3->installEventFilter(this);
-	
-    // 初始化 connect 页面
-    configP = new ConfigPanel();
 
-    QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
-
-    // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
-    // QObject::connect(&qnode,SIGNAL(loggingCamera()),this,SLOT(setImage1()));
-
-    QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
-
-    QObject::connect(ui.btn_set_cam1, &QPushButton::clicked, this, [=](){
-        QNode *node_1 = new QNode(argc, argv);
-        connect(node_1, SIGNAL(getImage1(cv::Mat)), this, SLOT(setImage1(cv::Mat)));
-        if (!node_1->init("Node1", "/hik_cam_node/hik_camera")) {
-            showNoMasterMessage();
-        } else {
-            ui.btn_set_cam1->setEnabled(false);
-        }
-    });
-
-
-    QObject::connect(ui.btn_set_cam2, &QPushButton::clicked, this, [=](){
-        QNode *node_2 = new QNode(argc, argv);
-        connect(node_2, SIGNAL(getImage2(cv::Mat)), this, SLOT(setImage2(cv::Mat)));
-        if (!node_2->init("Node2", "/hik_image")) {
-            showNoMasterMessage();
-        } else {
-            ui.btn_set_cam2->setEnabled(false);
-        }
-    });
-
-
-
-    //接收登录页面传来的数据
-    connect(configP, SIGNAL(ros_input_over(QString, QString, QString)), 
-            this, SLOT(connectByConfig(QString, QString, QString)));
-
-    // if ( ui.checkbox_remember_settings->isChecked() ) {
-    //     on_button_connect_clicked(true);
-    // }
-
-    // 初始化
-    initial();
-}
-
-void MainWindow::initial() {
-    setWindowIcon(QIcon(":/images/icon.png"));
-    setWindowTitle(tr("视频场景监控"));
-
+    // 设置下方事件区域
     ui.consoleTable->setSelectionMode(QAbstractItemView::NoSelection);  // 禁止点击输出窗口的 item
     setEventTable();
-
     consoleLog("hight", "right", "detial");
 
     // 设置默认主题
@@ -108,15 +85,13 @@ void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString 
     qDebug() << ros_port;
     qDebug() << ros_topic;
 
-    // if (!qnode.init(ros_address.toStdString(), 
-    //         ros_port.toStdString(), ros_topic.toStdString())) {
-    // if (!qnode.init()) {
-    //     // 连接失败后的操作
-    //     showNoMasterMessage();
-    // } else {
-    //     // 连接成功
-    //     ui.btn_config->setEnabled(false);
-    // }
+    if (!qnode.init()) {
+        // 连接失败
+        showNoMasterMessage();
+    } else {
+        // 连接成功
+        ui.btn_config->setEnabled(false);
+    }
 }
 
 void MainWindow::setEventTable() {
@@ -141,8 +116,7 @@ void MainWindow::consoleLog(QString level, QString result, QString opera) {
 }
 
 void MainWindow::showConfigPanel() {
-    std::cout << "------------------" << std::endl;
-    
+    std::cout << "Show Config Panel" << std::endl;
     configP->show();
 }
 
@@ -153,27 +127,12 @@ void MainWindow::Show_img(QImage image, QByteArray res)
     ui.camera_0->setPixmap(QPixmap::fromImage(mimage));
 }
 
-
-MainWindow::~MainWindow() {}
-
-
-void MainWindow::exit() {
-    close();
-}
-
 void MainWindow::showNoMasterMessage() {
 	QMessageBox msgBox;
 	msgBox.setText("找不到ROS服务器");
 	msgBox.exec();
     close();
 }
-
-// void MainWindow::mouseDoubleClickEvent(QMouseEvent *event) {
-//     if(event->button()==Qt::LeftButton) 
-//         qDebug("Left");
-//     if(event->button()==Qt::RightButton)
-//         qDebug("Right"); 
-// }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     // std::cout << "init temp: "<< tempWidth << " label: " << labelWidth << std::endl;
@@ -264,24 +223,23 @@ void MainWindow::setImage1(cv::Mat image)
     qimage_mutex_.lock();
     cv::Mat showImg;
     
-    if (objectD.index % 3 == 0) {
-        
-        objectD.track_boxes.clear();
-        objectD.track_classIds.clear();
-        objectD.track_confidences.clear();
-        objectD.runODModel(image);
+    if (objectD->index % 3 == 0) {
+        objectD->track_boxes.clear();
+        objectD->track_classIds.clear();
+        objectD->track_confidences.clear();
+        objectD->runODModel(image);
     } else {
         // 跟踪算法
-        // objectD.runTrackerModel(image);
+        // objectD->runTrackerModel(image);
     }
-    objectD.index = (objectD.index + 1) % 30;
+    objectD->index = (objectD->index + 1) % 30;
 
-    for (unsigned int i=0; i<objectD.track_boxes.size(); i++) {
-        int x = objectD.track_boxes[i].x;
-        int y = objectD.track_boxes[i].y;
-        int width = objectD.track_boxes[i].width;
-        int height = objectD.track_boxes[i].height;
-        objectD.drawPred(objectD.track_classIds[i], objectD.track_confidences[i], 
+    for (unsigned int i=0; i<objectD->track_boxes.size(); i++) {
+        int x = objectD->track_boxes[i].x;
+        int y = objectD->track_boxes[i].y;
+        int width = objectD->track_boxes[i].width;
+        int height = objectD->track_boxes[i].height;
+        objectD->drawPred(objectD->track_classIds[i], objectD->track_confidences[i], 
                         x, y, x+width, y+height, image);
     }
     

@@ -73,20 +73,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_set_cam1">
-            <property name="text">
-             <string>设置相机1</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_set_cam2">
-            <property name="text">
-             <string>设置相机2</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <spacer name="horizontalSpacer_2">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
