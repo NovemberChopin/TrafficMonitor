@@ -41,6 +41,7 @@ protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 
 public Q_SLOTS:
+	void testButton();
 	// 处理配置弹窗
 	void connectByConfig(QString ros_address, QString ros_port, QString ros_topic);
 
@@ -55,6 +56,11 @@ private:
 	QNode qnode;				// ros节点相关
 	ConfigPanel *configP;		// 配置对话框
 	ObjectDetection *objectD;	// 检测（跟踪）算法对象
+
+	cv::Mat cameraMatrix;		// 相机内参
+	cv::Mat distCoeffs;			// 相机畸变参数
+	cv::Size image_size;
+	cv::Mat map1, map2;			// 图像输出映射
 
 	// 窗口尺寸
 	int labelWidth, labelHeight;

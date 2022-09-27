@@ -31,7 +31,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
-
+    QObject::connect(ui.btn_test, &QPushButton::clicked, this, &MainWindow::testButton);
     QObject::connect(&qnode, SIGNAL(getImage1(cv::Mat)), this, SLOT(setImage1(cv::Mat)));
     QObject::connect(&qnode, SIGNAL(getImage2(cv::Mat)), this, SLOT(setImage2(cv::Mat)));
 
@@ -47,6 +47,24 @@ void MainWindow::initial() {
     setWindowIcon(QIcon(":/images/icon.png"));
     setWindowTitle(tr("视频场景监控"));
 
+    // 计算无畸变和修正转换映射
+    cameraMatrix = Mat::eye(3, 3, CV_64F);
+    cameraMatrix.at<double>(0,0) = 795.28917;
+	cameraMatrix.at<double>(0,2) = 624.15859;
+	cameraMatrix.at<double>(1,1) = 799.53981;
+	cameraMatrix.at<double>(1,2) = 356.17181;
+
+    distCoeffs = Mat::zeros(5, 1, CV_64F);
+    distCoeffs.at<double>(0,0) = -0.387154;
+	distCoeffs.at<double>(1,0) = 0.116917;
+	distCoeffs.at<double>(2,0) = -0.004499;
+	distCoeffs.at<double>(3,0) = 0.003409;
+	distCoeffs.at<double>(4,0) = 0.000000;
+
+    image_size = cv::Size(1280, 720);
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(), cameraMatrix, image_size, CV_16SC2, map1, map2);
+
+
     // 设置页面以全屏显示
     QDesktopWidget desktop;
     int screenX = desktop.availableGeometry().width();
@@ -54,9 +72,10 @@ void MainWindow::initial() {
     this->resize(screenX, screenY);
 
     // 设置可变相机画面大小
-    tempWidth = labelWidth = ui.camera->width();
+    tempWidth = labelWidth = ui.camera_0->width();
     tempHeight = labelHeight = ui.camera_0->height();
-    // std::cout << "init temp: "<< tempWidth << " label: " << labelWidth << std::endl;
+    std::cout << "init labelWidth: "<< labelWidth << " labelHeight: " << labelHeight << std::endl;
+    std::cout << ui.camera->width() << " " << ui.camera->height() << std::endl;
     video0Max=false;
     video1Max=false;
     video2Max=false;
@@ -113,22 +132,22 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
         if (obj == ui.camera_0) {
             if (video0Max) {
                 // 当前 camera_0 为最大化状态，要将其变为正常
-                labelWidth = tempWidth;
-                labelHeight = tempHeight;
-                // std::cout << "恢复正常: "<< tempWidth << " label: " << labelWidth << std::endl;
                 ui.camera_1->setVisible(true);
                 ui.camera_2->setVisible(true);
                 ui.camera_3->setVisible(true);
+
+                labelWidth = ui.camera_0->width()/2;
+                labelHeight = ui.camera_0->height()/2;
+                std::cout << "恢复正常: "<< labelWidth << " label: " << labelHeight << std::endl;
             } else {
                 // 当前 camera_0 为正常显示，要将其最大化
-                // 要记录正常状态大小
-                // std::cout << "恢复正常" << std::endl;
-                labelWidth = ui.camera->width();
-                labelHeight = ui.camera->height();
-                // std::cout << "最大化: "<< tempWidth << " label: " << labelWidth << std::endl;
                 ui.camera_1->setVisible(false);
                 ui.camera_2->setVisible(false);
                 ui.camera_3->setVisible(false);
+                
+                labelWidth = ui.camera->width();
+                labelHeight = ui.camera->height();
+                std::cout << "最大化: "<< labelWidth << " label: " << labelHeight << std::endl;
             }
             video0Max = !video0Max;
         } else {
@@ -139,6 +158,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 }
 
 /******************** 槽函数 *********************/
+
+void MainWindow::testButton() {
+    std::cout << " Test Button" << std::endl;
+    std::cout << ui.camera_0->width() << " " << ui.camera_0->height();
+}
 
 void MainWindow::showConfigPanel() {
     std::cout << "Show Config Panel" << std::endl;
@@ -160,14 +184,17 @@ void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString 
 }
 
 void MainWindow::setImage2(cv::Mat image) {
+    // std::cout << "image size: " << image.size() << std::endl;
     qimage_mutex_.lock();
-    cv::Mat showImg;
+    cv::Mat imageCalib;     // 畸变修复后的图像
+    cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
+    
 
     int cam_index = 1;
     int interval = 3;
-    processOD(image, interval, cam_index);
-
-    cvtColor(image, showImg, CV_BGR2RGB);
+    processOD(imageCalib, interval, cam_index);
+    cv::Mat showImg;
+    cvtColor(imageCalib, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
     QImage scaleImage = img.scaled(ui.camera_1->width(), ui.camera_1->height());
@@ -179,16 +206,19 @@ void MainWindow::setImage2(cv::Mat image) {
 void MainWindow::setImage1(cv::Mat image)
 {   
     qimage_mutex_.lock();
-    cv::Mat showImg;
+    cv::Mat imageCalib;     // 畸变修复后的图像
+    cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
 
     int cam_index = 0;
     int interval = 3;
-    processOD(image, interval, cam_index);
+    processOD(imageCalib, interval, cam_index);
     
-    cvtColor(image, showImg, CV_BGR2RGB);
+    cv::Mat showImg;
+    cvtColor(imageCalib, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
     QImage scaleImage = img.scaled(ui.camera_0->width(), ui.camera_0->height());
+    // QImage scaleImage = img.scaled(labelWidth, labelHeight);
     ui.camera_0->setScaledContents(true);
     ui.camera_0->setPixmap(QPixmap::fromImage(scaleImage));
     qimage_mutex_.unlock();
