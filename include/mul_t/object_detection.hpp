@@ -23,10 +23,11 @@ using namespace std;
 
 struct DetectionInfo
 {
-	int index;
-	vector<Rect> track_boxes;
-	vector<int> track_classIds;
-	vector<float> track_confidences;
+	int index;							// 当前检测的帧的 index
+	vector<Rect> track_boxes_pre;		// 记录上一次的边框位置
+	vector<Rect> track_boxes;			// 当前帧检测到物体的边框位置
+	vector<int> track_classIds;			// 当前帧检测物体的类别
+	vector<float> track_confidences;	// 当前帧检测物体的置信度
 	DetectionInfo(int index) : index(index) {}
 };
 
@@ -56,6 +57,7 @@ public:
 	// vector<int> track_classIds;
 	// vector<float> track_confidences;
 
+	// 有多个相机，所以用 vector 表示，DetectionInfo表示对每一个相机的检测结果
 	vector<DetectionInfo*> detecRes;
 
 	Ptr<MultiTracker> multiTracker;
@@ -67,7 +69,7 @@ public:
     void runODModel(cv::Mat& frame, int cam_index);
 	vector<String> getOutputsNames(const Net& net);
 	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index);
-	void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame);
+	void drawPred(int classId, float conf, float speed, int left, int top, int right, int bottom, Mat& frame);
 	// 物体跟踪相关函数
 	void runTrackerModel(cv::Mat & frame);
 	Ptr<Tracker> createTrackerByName(string trackerType);

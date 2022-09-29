@@ -28,6 +28,8 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     configP = new ConfigPanel();        // 初始化 connect 页面
     objectD = new ObjectDetection(2);    // 初始化 检测对象对象
 
+    interval = 5;
+
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
@@ -191,7 +193,6 @@ void MainWindow::setImage2(cv::Mat image) {
     
 
     int cam_index = 1;
-    int interval = 3;
     processOD(imageCalib, interval, cam_index);
     cv::Mat showImg;
     cvtColor(imageCalib, showImg, CV_BGR2RGB);
@@ -210,7 +211,6 @@ void MainWindow::setImage1(cv::Mat image)
     cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
 
     int cam_index = 0;
-    int interval = 3;
     processOD(imageCalib, interval, cam_index);
     
     cv::Mat showImg;
@@ -236,6 +236,11 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
     DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
 
     if (detec_info->index % interval == 0) {
+        detec_info->track_boxes_pre.clear();
+        // 将当前帧检测到的框赋值给 track_boxes_pre
+        detec_info->track_boxes_pre.assign(
+            detec_info->track_boxes.begin(), detec_info->track_boxes.end());
+        
         detec_info->track_boxes.clear();
         detec_info->track_classIds.clear();
         detec_info->track_confidences.clear();
@@ -246,18 +251,52 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
     }
     detec_info->index = (detec_info->index + 1) % 30;
     
+    // 计算各个目标的速度
+    vector<float> speeds;
+    if (detec_info->track_boxes_pre.empty() || detec_info->track_boxes.empty() ||
+        detec_info->track_boxes_pre.size() != detec_info->track_boxes.size()) {
+        // 如果track_boxes_pre没有数据，则表示第一次检测，所有物体速度为0
+        speeds = vector<float>(detec_info->track_boxes.size(), 0.0);
+    } else {
+        // 只有前后两帧 bboxes 长度一样时
+        for (int i=0; i<detec_info->track_boxes.size(); i++) {
+            cv::Point pre = getCenterPoint(detec_info->track_boxes_pre[i]);
+            cv::Point cur = getCenterPoint(detec_info->track_boxes[i]);
+            // 这里计算的速度为 像素/秒
+            float dist = sqrt(pow(cur.x-pre.x, 2) + pow(cur.y-pre.y, 2));
+            float speed = dist / float(interval / 25.0);      // 25表示每秒25帧
+            speeds.push_back(speed);
+        }
+    }
+
+    // 如果当前帧没有检测，则直接用上次的检测结果
     for (unsigned int i=0; i< detec_info->track_boxes.size(); i++) {
         int x = detec_info->track_boxes[i].x;
         int y = detec_info->track_boxes[i].y;
         int width = detec_info->track_boxes[i].width;
         int height = detec_info->track_boxes[i].height;
         objectD->drawPred(detec_info->track_classIds[i], detec_info->track_confidences[i], 
-                        x, y, x+width, y+height, image);
+                      speeds[i],  x, y, x+width, y+height, image);
     }
+    // if (detec_info->track_confidences.size() > 1) {
+    //     for (int i=0; i<detec_info->track_confidences.size(); i++) {
+    //         std::cout << detec_info->track_confidences[i] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 void MainWindow::exit() { 
     close();
+}
+
+// 返回物体检测框的中心点
+cv::Point MainWindow::getCenterPoint(Rect &rect) {
+    int x = rect.x;
+    int y = rect.y;
+    int width = rect.width;
+    int height = rect.height;
+    return Point(x+width/2, y+height/2);
 }
 
 // void MainWindow::ReadSettings() {

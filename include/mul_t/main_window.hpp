@@ -10,6 +10,7 @@
 #include "config_panel.hpp"
 #include <QImage>
 #include <QMutex>
+#include <cmath>
 
 
 namespace mul_t {
@@ -37,6 +38,8 @@ public:
 
 	void initial();
 
+	cv::Point getCenterPoint(Rect &rect);
+
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 
@@ -61,6 +64,7 @@ private:
 	cv::Mat distCoeffs;			// 相机畸变参数
 	cv::Size image_size;
 	cv::Mat map1, map2;			// 图像输出映射
+	int interval;
 
 	// 窗口尺寸
 	int labelWidth, labelHeight;

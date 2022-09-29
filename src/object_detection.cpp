@@ -104,9 +104,16 @@ void ObjectDetection::runODModel(cv::Mat& frame, int cam_index) {
     // if (!multiTracker->empty()) {
     //     multiTracker->clear();
     // }
+    // std::string trackerType = "MOSSE";
     // // initialize multitracker
-    // for(int i=0; i < track_boxes.size(); i++)
-    //     multiTracker->add(createTrackerByName(trackerTypes[7]), frame, Rect2d(track_boxes[i]));
+    // // std::cout << detecRes.at(cam_index)->track_boxes.size() << std::endl;
+    // clock_t start, end;
+    // start = clock();
+    // for(int i=0; i < detecRes.at(cam_index)->track_boxes.size(); i++)
+    //     multiTracker->add(createTrackerByName(trackerType), 
+    //         frame, Rect2d(detecRes.at(cam_index)->track_boxes[i]));
+    // end = clock();
+    // std::cout << "size: " << detecRes.at(cam_index)->track_boxes.size() << "forward time: " << double(end-start)/CLOCKS_PER_SEC << std::endl;
 }
 
 
@@ -168,35 +175,37 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
             // track_boxes.push_back(boxes[idx]);
             // track_classIds.push_back(classIds[idx]);
             // track_confidences.push_back(confidences[idx]);
-            drawPred(classIds[idx], confidences[idx], box.x, box.y,
-                    box.x + box.width, box.y + box.height, frame);
+            // 此时仅仅执行目标检测，在main_window文件中添加框
+            // drawPred(classIds[idx], confidences[idx], box.x, box.y,
+            //         box.x + box.width, box.y + box.height, frame);
         }
     }
 }
 
 
 // Draw the predicted bounding box
-void ObjectDetection::drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame)
+void ObjectDetection::drawPred(int classId, float conf, float speed, int left, int top, int right, int bottom, Mat& frame)
 {
     //Draw a rectangle displaying the bounding box
     rectangle(frame, Point(left, top), Point(right, bottom), Scalar(255, 178, 50), 3);
     
     //Get the label for the class name and its confidence
     string label = format("%.2f", conf);
+    string speed_label = format("%.2f", speed);
     if (!classes.empty())
     {
         CV_Assert(classId < (int)classes.size());
         if(classId >= 3 && classId <= 7) classId = 2;
-        //label = classes[classId] + ":" + label;
-        label = classes[classId];
+        label = classes[classId] + ":" + label + " " + speed_label;
+        // label = classes[classId];
     }
     
     //Display the label at the top of the bounding box
     int baseLine;
     Size labelSize = getTextSize(label, FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
     top = max(top, labelSize.height);
-    rectangle(frame, Point(left, top - round(1.5*labelSize.height)), Point(left + round(1.5*labelSize.width), top + baseLine), Scalar(255, 255, 255), FILLED);
-    putText(frame, label, Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0,0,0),1);
+    rectangle(frame, Point(left, top - round(1.5*labelSize.height)), Point(left + round(1.5*labelSize.width), top + baseLine), Scalar(255, 178, 50), FILLED);
+    putText(frame, label, Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0,0,0),2);
 }
 
 
