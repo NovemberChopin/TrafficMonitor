@@ -34,8 +34,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
     QObject::connect(ui.btn_test, &QPushButton::clicked, this, &MainWindow::testButton);
-    QObject::connect(&qnode, SIGNAL(getImage1(cv::Mat)), this, SLOT(setImage1(cv::Mat)));
-    QObject::connect(&qnode, SIGNAL(getImage2(cv::Mat)), this, SLOT(setImage2(cv::Mat)));
+    QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
 
     //接收登录页面传来的数据
     connect(configP, SIGNAL(ros_input_over(QString, QString, QString)), 
@@ -185,42 +184,38 @@ void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString 
     }
 }
 
-void MainWindow::setImage2(cv::Mat image) {
-    // std::cout << "image size: " << image.size() << std::endl;
-    qimage_mutex_.lock();
-    cv::Mat imageCalib;     // 畸变修复后的图像
-    cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
-    
 
-    int cam_index = 1;
-    processOD(imageCalib, interval, cam_index);
-    cv::Mat showImg;
-    cvtColor(imageCalib, showImg, CV_BGR2RGB);
-    QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
-                                        showImg.rows, showImg.step, QImage::Format_RGB888);
-    QImage scaleImage = img.scaled(ui.camera_1->width(), ui.camera_1->height());
-    ui.camera_1->setScaledContents(true);
-    ui.camera_1->setPixmap(QPixmap::fromImage(scaleImage));
-    qimage_mutex_.unlock();
-}
-
-void MainWindow::setImage1(cv::Mat image)
+void MainWindow::setImage(cv::Mat image, int cam_index)
 {   
     qimage_mutex_.lock();
     cv::Mat imageCalib;     // 畸变修复后的图像
     cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
 
-    int cam_index = 0;
+    // int cam_index = 0;
     processOD(imageCalib, interval, cam_index);
     
     cv::Mat showImg;
     cvtColor(imageCalib, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
-    QImage scaleImage = img.scaled(ui.camera_0->width(), ui.camera_0->height());
-    // QImage scaleImage = img.scaled(labelWidth, labelHeight);
-    ui.camera_0->setScaledContents(true);
-    ui.camera_0->setPixmap(QPixmap::fromImage(scaleImage));
+    QImage scaleImage;
+    switch (cam_index)
+    {
+    case 0:
+        scaleImage = img.scaled(ui.camera_0->width(), ui.camera_0->height());
+        // QImage scaleImage = img.scaled(labelWidth, labelHeight);
+        ui.camera_0->setScaledContents(true);
+        ui.camera_0->setPixmap(QPixmap::fromImage(scaleImage));
+        break;
+    case 1:
+        scaleImage = img.scaled(ui.camera_1->width(), ui.camera_1->height());
+        // QImage scaleImage = img.scaled(labelWidth, labelHeight);
+        ui.camera_1->setScaledContents(true);
+        ui.camera_1->setPixmap(QPixmap::fromImage(scaleImage));
+        break;
+    default:
+        break;
+    }
     qimage_mutex_.unlock();
 }
 

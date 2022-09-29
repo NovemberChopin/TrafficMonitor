@@ -31,22 +31,16 @@ public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
 	bool init();
-
-	bool init(std::string nodeName, std::string topic);
-
 	bool init(const std::string &master_url, const std::string &host_url, const std::string &topic);
-	// bool init(const std::string &master_url, const std::string &host_url);
+	
 	void run();
 
-  	void Callback_1(const sensor_msgs::ImageConstPtr &msg);//camera callback function
-	void Callback_2(const sensor_msgs::ImageConstPtr &msg);
+  	void Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index); //camera callback function
 
-  	// cv::Mat img;
 
 Q_SIGNALS:
     void rosShutdown();
-    void getImage1(cv::Mat);
-	void getImage2(cv::Mat);
+    void getImage(cv::Mat, int cam_index);
 
 private:
 	int init_argc;

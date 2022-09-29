@@ -49,8 +49,7 @@ public Q_SLOTS:
 	void connectByConfig(QString ros_address, QString ros_port, QString ros_topic);
 
 	// 处理接收图片的信号槽
-    void setImage1(cv::Mat image);
-	void setImage2(cv::Mat image);
+    void setImage(cv::Mat image, int cam_index);
 	
 	void exit();
 private:
