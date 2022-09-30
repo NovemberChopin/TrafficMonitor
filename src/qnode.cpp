@@ -104,7 +104,7 @@ void QNode::run() {
 		ros::SingleThreadedSpinner spinner_a;
 		spinner_a.spin(&callback_queue_a);
 	});
-
+	
 	ros::NodeHandle n_b;
 	ros::CallbackQueue callback_queue_b;
 	n_b.setCallbackQueue(&callback_queue_b);
@@ -114,8 +114,52 @@ void QNode::run() {
 		ros::SingleThreadedSpinner spinner_b;
 		spinner_b.spin(&callback_queue_b);
 	});
+
+	ros::NodeHandle n_c;
+	ros::CallbackQueue callback_queue_c;
+	n_c.setCallbackQueue(&callback_queue_c);
+	image_transport::ImageTransport it_c(n_c);
+	image_sub3 = it_c.subscribe("/hik_image_3", 1, boost::bind(&QNode::Callback, this, _1, 2));
+	std::thread spinner_thread_c([&callback_queue_c](){
+		ros::SingleThreadedSpinner spinner_c;
+		spinner_c.spin(&callback_queue_c);
+	});
+	
+	ros::NodeHandle n_d;
+	ros::CallbackQueue callback_queue_d;
+	n_d.setCallbackQueue(&callback_queue_d);
+	image_transport::ImageTransport it_d(n_d);
+	image_sub4 = it_d.subscribe("/hik_image_4", 1, boost::bind(&QNode::Callback, this, _1, 3));
+	std::thread spinner_thread_d([&callback_queue_d](){
+		ros::SingleThreadedSpinner spinner_d;
+		spinner_d.spin(&callback_queue_d);
+	});
 	spinner_thread_a.join();
 	spinner_thread_b.join();
+	spinner_thread_c.join();
+	spinner_thread_d.join();
+
+	// std::vector<string> strList;
+	// strList.push_back("/hik_cam_node/hik_camera");
+	// strList.push_back("/hik_image");
+	// std::cout << "****** " << strList.size() << std::endl;
+	// for (int i=0; i<strList.size(); i++) {
+	// 	ros::NodeHandle n;
+	// 	ros::CallbackQueue callback_queue;
+	// 	n.setCallbackQueue(&callback_queue);
+	// 	image_transport::ImageTransport it(n);
+	// 	// 0 表示 Callback 的第二个参数 cam_index
+	// 	if (i==0) {
+	// 		image_sub = it.subscribe(strList.at(i), 1, boost::bind(&QNode::Callback, this, _1, i));
+	// 	} else if (i==1) {
+	// 		image_sub2 = it.subscribe(strList.at(i), 1, boost::bind(&QNode::Callback, this, _1, i));
+	// 	}
+	// 	std::thread spinner_thread([&callback_queue](){
+	// 		ros::SingleThreadedSpinner spinner;
+	// 		spinner.spin(&callback_queue);
+	// 	});
+	// 	spinner_thread.join();
+	// }
 }
 
 

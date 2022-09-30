@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QDebug>
 #include <QString>
+#include <QLabel>
 #include <QStringList>
 #include <QHeaderView>
 #include <QDesktopWidget>
@@ -199,25 +200,24 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
     QImage scaleImage;
-    switch (cam_index)
-    {
-    case 0:
-        scaleImage = img.scaled(ui.camera_0->width(), ui.camera_0->height());
-        // QImage scaleImage = img.scaled(labelWidth, labelHeight);
-        ui.camera_0->setScaledContents(true);
-        ui.camera_0->setPixmap(QPixmap::fromImage(scaleImage));
-        break;
-    case 1:
-        scaleImage = img.scaled(ui.camera_1->width(), ui.camera_1->height());
-        // QImage scaleImage = img.scaled(labelWidth, labelHeight);
-        ui.camera_1->setScaledContents(true);
-        ui.camera_1->setPixmap(QPixmap::fromImage(scaleImage));
-        break;
-    default:
-        break;
+    QLabel *label;
+    switch (cam_index) {
+        case 0: label = ui.camera_0;
+            break;
+        case 1: label = ui.camera_1;
+            break;
+        case 2: label = ui.camera_2;
+            break;
+        default: label = ui.camera_3;
+            break;
     }
+    scaleImage = img.scaled(label->width(), label->height());
+    // QImage scaleImage = img.scaled(labelWidth, labelHeight);
+    label->setScaledContents(true);
+    label->setPixmap(QPixmap::fromImage(scaleImage));
     qimage_mutex_.unlock();
 }
+
 
 /**
  * @brief 处理检测（跟踪）过程

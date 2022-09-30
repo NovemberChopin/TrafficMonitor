@@ -32,7 +32,7 @@ public:
 	virtual ~QNode();
 	bool init();
 	bool init(const std::string &master_url, const std::string &host_url, const std::string &topic);
-	
+
 	void run();
 
   	void Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index); //camera callback function
@@ -49,6 +49,8 @@ private:
 	
   	image_transport::Subscriber image_sub;
 	image_transport::Subscriber image_sub2;
+	image_transport::Subscriber image_sub3;
+	image_transport::Subscriber image_sub4;
 };
 
 
