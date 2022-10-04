@@ -184,19 +184,20 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
 
 
 // Draw the predicted bounding box
-void ObjectDetection::drawPred(int classId, float conf, float speed, int left, int top, int right, int bottom, Mat& frame)
-{
+void ObjectDetection::drawPred(int classId, float conf, float speed, float dist,
+                                int left, int top, int right, int bottom, Mat& frame) {
     //Draw a rectangle displaying the bounding box
     rectangle(frame, Point(left, top), Point(right, bottom), Scalar(255, 178, 50), 3);
     
     //Get the label for the class name and its confidence
     string label = format("%.2f", conf);
     string speed_label = format("%.2f", speed);
+    string dist_label = format("%.2f", dist);
     if (!classes.empty())
     {
         CV_Assert(classId < (int)classes.size());
         if(classId >= 3 && classId <= 7) classId = 2;
-        label = classes[classId] + ":" + label + " " + speed_label;
+        label = classes[classId] + ":" + label + " " + speed_label + " " + dist_label;
         // label = classes[classId];
     }
     

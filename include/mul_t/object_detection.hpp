@@ -69,7 +69,7 @@ public:
     void runODModel(cv::Mat& frame, int cam_index);
 	vector<String> getOutputsNames(const Net& net);
 	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index);
-	void drawPred(int classId, float conf, float speed, int left, int top, int right, int bottom, Mat& frame);
+	void drawPred(int classId, float conf, float speed, float dist, int left, int top, int right, int bottom, Mat& frame);
 	// 物体跟踪相关函数
 	void runTrackerModel(cv::Mat & frame);
 	Ptr<Tracker> createTrackerByName(string trackerType);

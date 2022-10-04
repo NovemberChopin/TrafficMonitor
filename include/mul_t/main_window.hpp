@@ -43,7 +43,7 @@ public:
 
 	cv::Point3f cameraToWorld(cv::Point2f point);
 
-	cv::Point2f getCenterPoint(Rect &rect);
+	cv::Point2f getPixelPoint(Rect &rect);		// 计算检测框的像素坐标
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
@@ -67,6 +67,7 @@ private:
 	cv::Mat cameraMatrix;		// 相机内参
 	cv::Mat distCoeffs;			// 相机畸变参数
 	cv::Mat rotationMatrix, transVector; 	// 相机姿态
+	cv::Point3f cameraCoord;	// 相机在世界坐标下的位置
 	cv::Size image_size;
 	cv::Mat map1, map2;			// 图像输出映射
 	int interval;

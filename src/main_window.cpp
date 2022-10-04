@@ -129,6 +129,9 @@ void MainWindow::loadCameraMatrix() {
 	// Save the results
 	// extrin << "rotationmatrix" << rotationMatrix;
 	// extrin << "translationvector" << transVector;
+
+    // 初始化相机坐标，不考虑高度
+    this->cameraCoord = cv::Point3f(0.12, -2.9, 0);
 }
 
 
@@ -319,28 +322,31 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
     }
     detec_info->index = (detec_info->index + 1) % 30;
     
-    // 计算各个目标的速度
-    vector<float> speeds;
+    // 计算各个目标的速度与距离
+    vector<float> speeds, distances;
     if (detec_info->track_boxes_pre.empty() || detec_info->track_boxes.empty() ||
         detec_info->track_boxes_pre.size() != detec_info->track_boxes.size()) {
         // 如果track_boxes_pre没有数据，则表示第一次检测，所有物体速度为0
         speeds = vector<float>(detec_info->track_boxes.size(), 0.0);
+        distances = vector<float>(detec_info->track_boxes.size(), 0.0);
     } else {
         // 只有前后两帧 bboxes 长度一样时
         for (int i=0; i<detec_info->track_boxes.size(); i++) {
-            cv::Point2f pre = getCenterPoint(detec_info->track_boxes_pre[i]);
-            cv::Point2f cur = getCenterPoint(detec_info->track_boxes[i]);
+            cv::Point2f pre = getPixelPoint(detec_info->track_boxes_pre[i]);
+            cv::Point2f cur = getPixelPoint(detec_info->track_boxes[i]);
 
             // 计算真实世界坐标
             cv::Point3f wd_pre = cameraToWorld(pre);
             cv::Point3f wd_cur = cameraToWorld(cur);
-            float dist = sqrt(pow(wd_cur.x-wd_pre.x, 2) + pow(wd_cur.y-wd_pre.y, 2));
-            float speed = dist / float(interval / 25.0);
-
+            float delta = sqrt(pow(wd_cur.x-wd_pre.x, 2) + pow(wd_cur.y-wd_pre.y, 2));
+            float speed = delta / float(interval / 25.0);
             // 这里计算的速度为 像素/秒
             // float dist = sqrt(pow(cur.x-pre.x, 2) + pow(cur.y-pre.y, 2));
             // float speed = dist / float(interval / 25.0);      // 25表示每秒25帧
             speeds.push_back(speed);
+            // 计算物体距离（不考虑高度）
+            float dist = sqrt(pow(wd_cur.x-cameraCoord.x, 2) + pow(wd_cur.y-cameraCoord.y, 2));
+            distances.push_back(dist);
         }
     }
 
@@ -351,7 +357,7 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
         int width = detec_info->track_boxes[i].width;
         int height = detec_info->track_boxes[i].height;
         objectD->drawPred(detec_info->track_classIds[i], detec_info->track_confidences[i], 
-                      speeds[i],  x, y, x+width, y+height, image);
+                      speeds[i], distances[i],  x, y, x+width, y+height, image);
     }
     // if (detec_info->track_confidences.size() > 1) {
     //     for (int i=0; i<detec_info->track_confidences.size(); i++) {
@@ -365,13 +371,19 @@ void MainWindow::exit() {
     close();
 }
 
-// 返回物体检测框的中心点
-cv::Point2f MainWindow::getCenterPoint(Rect &rect) {
+/**
+ * @brief 返回物体像素坐标
+ * 
+ * @param rect 
+ * @return cv::Point2f 
+ */
+cv::Point2f MainWindow::getPixelPoint(Rect &rect) {
     int x = rect.x;
     int y = rect.y;
     int width = rect.width;
     int height = rect.height;
-    return cv::Point2f(x+width/2, y+height/2);
+    // return cv::Point2f(x+width/2, y+height/2);   // 质心坐标
+    return cv::Point2f(x+width/2, y+height);        // 底部中心坐标
 }
 
 // void MainWindow::ReadSettings() {
