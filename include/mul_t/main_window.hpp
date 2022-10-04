@@ -2,6 +2,7 @@
 #ifndef mul_t_MAIN_WINDOW_H
 #define mul_t_MAIN_WINDOW_H
 
+#include <opencv2/opencv.hpp>
 #include <QMainWindow>
 #include "ui_main_window.h"
 #include "qnode.hpp"
@@ -38,7 +39,11 @@ public:
 
 	void initial();
 
-	cv::Point getCenterPoint(Rect &rect);
+	void loadCameraMatrix();	// 生成相机的姿态（旋转和平移）
+
+	cv::Point3f cameraToWorld(cv::Point2f point);
+
+	cv::Point2f getCenterPoint(Rect &rect);
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
@@ -61,9 +66,12 @@ private:
 
 	cv::Mat cameraMatrix;		// 相机内参
 	cv::Mat distCoeffs;			// 相机畸变参数
+	cv::Mat rotationMatrix, transVector; 	// 相机姿态
 	cv::Size image_size;
 	cv::Mat map1, map2;			// 图像输出映射
 	int interval;
+
+	bool needSave = true;
 
 	// 窗口尺寸
 	int labelWidth, labelHeight;

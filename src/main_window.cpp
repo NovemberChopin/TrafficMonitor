@@ -29,7 +29,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     configP = new ConfigPanel();        // 初始化 connect 页面
     objectD = new ObjectDetection(2);    // 初始化 检测对象对象
 
-    interval = 5;
+    interval = 5;       // 物体检测间隔
 
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
@@ -50,19 +50,22 @@ void MainWindow::initial() {
     setWindowTitle(tr("视频场景监控"));
 
     // 计算无畸变和修正转换映射
-    cameraMatrix = Mat::eye(3, 3, CV_64F);
-    cameraMatrix.at<double>(0,0) = 795.28917;
-	cameraMatrix.at<double>(0,2) = 624.15859;
-	cameraMatrix.at<double>(1,1) = 799.53981;
-	cameraMatrix.at<double>(1,2) = 356.17181;
+    // cameraMatrix = Mat::eye(3, 3, CV_64F);
+    // cameraMatrix.at<double>(0,0) = 795.28917;
+	// cameraMatrix.at<double>(0,2) = 624.15859;
+	// cameraMatrix.at<double>(1,1) = 799.53981;
+	// cameraMatrix.at<double>(1,2) = 356.17181;
 
-    distCoeffs = Mat::zeros(5, 1, CV_64F);
-    distCoeffs.at<double>(0,0) = -0.387154;
-	distCoeffs.at<double>(1,0) = 0.116917;
-	distCoeffs.at<double>(2,0) = -0.004499;
-	distCoeffs.at<double>(3,0) = 0.003409;
-	distCoeffs.at<double>(4,0) = 0.000000;
+    // distCoeffs = Mat::zeros(5, 1, CV_64F);
+    // distCoeffs.at<double>(0,0) = -0.387154;
+	// distCoeffs.at<double>(1,0) = 0.116917;
+	// distCoeffs.at<double>(2,0) = -0.004499;
+	// distCoeffs.at<double>(3,0) = 0.003409;
+	// distCoeffs.at<double>(4,0) = 0.000000;
 
+    this->loadCameraMatrix();    // 加载相机参数 计算相机姿态
+
+    // 计算无畸变和修正转换映射
     image_size = cv::Size(1280, 720);
     cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(), cameraMatrix, image_size, CV_16SC2, map1, map2);
 
@@ -97,6 +100,71 @@ void MainWindow::initial() {
     qApp->setStyleSheet(qss);
 
 }
+
+
+/**
+ * @brief 计算相机姿态（世界坐标的外参）
+ * 
+ */
+void MainWindow::loadCameraMatrix() {
+    cv::Mat rotationVector, rotationMatrix, transVector;
+    std::vector<cv::Point2f> image_points;
+    std::vector<cv::Point3f> world_points;
+    // Load intrinsics and points.
+	cv::FileStorage intrin("/home/js/leishen_ws/src/mul_t/config/intrinsics.yml", cv::FileStorage::READ);
+	cv::FileStorage points("/home/js/leishen_ws/src/mul_t/config/pointssets.yml", cv::FileStorage::READ);
+	cv::FileStorage extrin("/home/js/leishen_ws/src/mul_t/config/extrinsics.yml", cv::FileStorage::WRITE);
+	intrin["camera_matrix"] >> cameraMatrix;
+	intrin["distortion_coefficients"] >> distCoeffs;
+	points["imagepoints"] >> image_points;
+	points["worldpoints"] >> world_points;
+    std::cout << image_points << std::endl;
+    std::cout << world_points << std::endl;
+	// Generate our matrix; rvec and tvec are the output.
+	solvePnP(world_points, image_points, cameraMatrix, distCoeffs, rotationVector, transVector);
+	Rodrigues(rotationVector, rotationMatrix);
+
+    this->rotationMatrix = rotationMatrix;
+    this->transVector = transVector;
+	// Save the results
+	// extrin << "rotationmatrix" << rotationMatrix;
+	// extrin << "translationvector" << transVector;
+}
+
+
+/**
+ * @brief 把像素坐标转化为世界坐标
+ * 
+ * @param x 像素 x 坐标
+ * @param y 像素 y 坐标
+ * @return cv::Point3f 世界坐标
+ */
+cv::Point3f MainWindow::cameraToWorld(cv::Point2f point) {
+    cv::Mat invR_x_invM_x_uv1, invR_x_tvec, wcPoint;
+    double Z = 0;   // Hypothesis ground:
+
+	cv::Mat screenCoordinates = cv::Mat::ones(3, 1, cv::DataType<double>::type);
+	screenCoordinates.at<double>(0, 0) = point.x;
+	screenCoordinates.at<double>(1, 0) = point.y;
+	screenCoordinates.at<double>(2, 0) = 1; // f=1
+
+	// s and point calculation, described here:
+	// https://stackoverflow.com/questions/12299870/computing-x-y-coordinate-3d-from-image-point
+	invR_x_invM_x_uv1 = rotationMatrix.inv() * cameraMatrix.inv() * screenCoordinates;
+	invR_x_tvec = rotationMatrix.inv() * transVector;
+	wcPoint = (Z + invR_x_tvec.at<double>(2, 0)) / invR_x_invM_x_uv1.at<double>(2, 0) * invR_x_invM_x_uv1 - invR_x_tvec;
+	//wcPoint = invR_x_invM_x_uv1 - invR_x_tvec;
+	cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
+
+	// std::cerr << "Camera Coordinates:" << screenCoordinates << std::endl << std::endl;
+	// std::cerr << "World Coordinates: " << worldCoordinates  << std::endl << std::endl;
+	std::cout << "[" << screenCoordinates.at<double>(0, 0) << ","
+			 << screenCoordinates.at<double>(1, 0) << "] -> ["
+			 << worldCoordinates.x << "," << worldCoordinates.y << "]"
+			 << std::endl;
+    return worldCoordinates;
+}
+
 
 void MainWindow::setEventTable() {
     qDebug() << "setEventTable---";
@@ -192,6 +260,11 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     cv::Mat imageCalib;     // 畸变修复后的图像
     cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
 
+    if (needSave) {
+        cv::imwrite("./test.png", imageCalib);
+        needSave = !needSave;
+    }
+
     // int cam_index = 0;
     processOD(imageCalib, interval, cam_index);
     
@@ -255,11 +328,18 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
     } else {
         // 只有前后两帧 bboxes 长度一样时
         for (int i=0; i<detec_info->track_boxes.size(); i++) {
-            cv::Point pre = getCenterPoint(detec_info->track_boxes_pre[i]);
-            cv::Point cur = getCenterPoint(detec_info->track_boxes[i]);
+            cv::Point2f pre = getCenterPoint(detec_info->track_boxes_pre[i]);
+            cv::Point2f cur = getCenterPoint(detec_info->track_boxes[i]);
+
+            // 计算真实世界坐标
+            cv::Point3f wd_pre = cameraToWorld(pre);
+            cv::Point3f wd_cur = cameraToWorld(cur);
+            float dist = sqrt(pow(wd_cur.x-wd_pre.x, 2) + pow(wd_cur.y-wd_pre.y, 2));
+            float speed = dist / float(interval / 25.0);
+
             // 这里计算的速度为 像素/秒
-            float dist = sqrt(pow(cur.x-pre.x, 2) + pow(cur.y-pre.y, 2));
-            float speed = dist / float(interval / 25.0);      // 25表示每秒25帧
+            // float dist = sqrt(pow(cur.x-pre.x, 2) + pow(cur.y-pre.y, 2));
+            // float speed = dist / float(interval / 25.0);      // 25表示每秒25帧
             speeds.push_back(speed);
         }
     }
@@ -286,12 +366,12 @@ void MainWindow::exit() {
 }
 
 // 返回物体检测框的中心点
-cv::Point MainWindow::getCenterPoint(Rect &rect) {
+cv::Point2f MainWindow::getCenterPoint(Rect &rect) {
     int x = rect.x;
     int y = rect.y;
     int width = rect.width;
     int height = rect.height;
-    return Point(x+width/2, y+height/2);
+    return cv::Point2f(x+width/2, y+height/2);
 }
 
 // void MainWindow::ReadSettings() {
