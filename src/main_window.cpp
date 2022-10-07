@@ -27,6 +27,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 {
 	ui.setupUi(this); 
     configP = new ConfigPanel();        // 初始化 connect 页面
+    trafficD = new TrafficDetail();     // 交通事件展示对话框
     objectD = new ObjectDetection(2);    // 初始化 检测对象对象
 
     interval = 5;       // 物体检测间隔
@@ -34,9 +35,11 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
+    // QTableWidget 单元格点击事件 SLOT
+    QObject::connect(ui.consoleTable ,SIGNAL(itemClicked(QTableWidgetItem*)), this, SLOT(consoleClick(QTableWidgetItem*)));
     QObject::connect(ui.btn_test, &QPushButton::clicked, this, &MainWindow::testButton);
     QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
-
+    
     //接收登录页面传来的数据
     connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), 
             this, SLOT(connectByConfig(ConfigInfo*)));
@@ -132,38 +135,6 @@ void MainWindow::loadCameraMatrix() {
 }
 
 
-/**
- * @brief 把像素坐标转化为世界坐标
- * 
- * @param x 像素 x 坐标
- * @param y 像素 y 坐标
- * @return cv::Point3f 世界坐标
- */
-cv::Point3f MainWindow::cameraToWorld(cv::Point2f point) {
-    cv::Mat invR_x_invM_x_uv1, invR_x_tvec, wcPoint;
-    double Z = 0;   // Hypothesis ground:
-
-	cv::Mat screenCoordinates = cv::Mat::ones(3, 1, cv::DataType<double>::type);
-	screenCoordinates.at<double>(0, 0) = point.x;
-	screenCoordinates.at<double>(1, 0) = point.y;
-	screenCoordinates.at<double>(2, 0) = 1; // f=1
-
-	// s and point calculation, described here:
-	// https://stackoverflow.com/questions/12299870/computing-x-y-coordinate-3d-from-image-point
-	invR_x_invM_x_uv1 = rotationMatrix.inv() * cameraMatrix.inv() * screenCoordinates;
-	invR_x_tvec = rotationMatrix.inv() * transVector;
-	wcPoint = (Z + invR_x_tvec.at<double>(2, 0)) / invR_x_invM_x_uv1.at<double>(2, 0) * invR_x_invM_x_uv1 - invR_x_tvec;
-	//wcPoint = invR_x_invM_x_uv1 - invR_x_tvec;
-	cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
-
-	// std::cout << "[" << screenCoordinates.at<double>(0, 0) << ","
-	// 		 << screenCoordinates.at<double>(1, 0) << "] -> ["
-	// 		 << worldCoordinates.x << "," << worldCoordinates.y << "]"
-	// 		 << std::endl;
-    return worldCoordinates;
-}
-
-
 void MainWindow::setEventTable() {
     qDebug() << "setEventTable---";
     ui.consoleTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -186,6 +157,11 @@ void MainWindow::consoleLog(QString level, QString result, QString opera) {
 }
 
 
+ 
+void MainWindow::consoleClick(QTableWidgetItem* item) {
+    qDebug() << "dgv click: " << item->text();
+    trafficD->show();
+}
 
 void MainWindow::showNoMasterMessage() {
 	QMessageBox msgBox;
@@ -221,6 +197,40 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     }
     return QObject::eventFilter(obj, event);
 }
+
+
+
+/**
+ * @brief 把像素坐标转化为世界坐标
+ * 
+ * @param x 像素 x 坐标
+ * @param y 像素 y 坐标
+ * @return cv::Point3f 世界坐标
+ */
+cv::Point3f MainWindow::cameraToWorld(cv::Point2f point) {
+    cv::Mat invR_x_invM_x_uv1, invR_x_tvec, wcPoint;
+    double Z = 0;   // Hypothesis ground:
+
+	cv::Mat screenCoordinates = cv::Mat::ones(3, 1, cv::DataType<double>::type);
+	screenCoordinates.at<double>(0, 0) = point.x;
+	screenCoordinates.at<double>(1, 0) = point.y;
+	screenCoordinates.at<double>(2, 0) = 1; // f=1
+
+	// s and point calculation, described here:
+	// https://stackoverflow.com/questions/12299870/computing-x-y-coordinate-3d-from-image-point
+	invR_x_invM_x_uv1 = rotationMatrix.inv() * cameraMatrix.inv() * screenCoordinates;
+	invR_x_tvec = rotationMatrix.inv() * transVector;
+	wcPoint = (Z + invR_x_tvec.at<double>(2, 0)) / invR_x_invM_x_uv1.at<double>(2, 0) * invR_x_invM_x_uv1 - invR_x_tvec;
+	//wcPoint = invR_x_invM_x_uv1 - invR_x_tvec;
+	cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
+
+	// std::cout << "[" << screenCoordinates.at<double>(0, 0) << ","
+	// 		 << screenCoordinates.at<double>(1, 0) << "] -> ["
+	// 		 << worldCoordinates.x << "," << worldCoordinates.y << "]"
+	// 		 << std::endl;
+    return worldCoordinates;
+}
+
 
 /******************** 槽函数 *********************/
 

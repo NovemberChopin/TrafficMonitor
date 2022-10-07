@@ -9,6 +9,7 @@
 #include "tools.hpp"
 #include "object_detection.hpp"
 #include "config_panel.hpp"
+#include "traffic_detail.hpp"
 #include <QImage>
 #include <QMutex>
 #include <cmath>
@@ -33,8 +34,6 @@ public:
 
 	void consoleLog(QString level, QString result, QString opera);
 
-	void showConfigPanel();
-
 	void processOD(cv::Mat &image, int interval, int cam_index);
 
 	void initial();
@@ -57,11 +56,16 @@ public Q_SLOTS:
     void setImage(cv::Mat image, int cam_index);
 	
 	void exit();
+	// QTableWidget 单元格点击事件 (展示事件详情)
+	void consoleClick(QTableWidgetItem* item);
+	void showConfigPanel();
+
 private:
 	Ui::MainWindowDesign ui;
   	mutable QMutex qimage_mutex_;
 	QNode qnode;				// ros节点相关
 	ConfigPanel *configP;		// 配置对话框
+	TrafficDetail *trafficD;	// 交通事件回放对话框
 	ObjectDetection *objectD;	// 检测（跟踪）算法对象
 
 	cv::Mat cameraMatrix;		// 相机内参
