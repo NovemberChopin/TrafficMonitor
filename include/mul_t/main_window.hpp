@@ -75,13 +75,11 @@ private:
 	bool needSave = true;
 
 	// 窗口尺寸
+	bool firstImage;
 	int labelWidth, labelHeight;
 	// 临时记录正常尺寸大小
     int tempWidth, tempHeight;
-	bool video0Max;
-    bool video1Max;
-    bool video2Max;
-    bool video3Max;
+	bool videoMax;
 };
 
 }  // namespace mul_t

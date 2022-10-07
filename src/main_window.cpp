@@ -77,14 +77,12 @@ void MainWindow::initial() {
     this->resize(screenX, screenY);
 
     // 设置可变相机画面大小
+    firstImage = true;
     tempWidth = labelWidth = ui.camera_0->width();
     tempHeight = labelHeight = ui.camera_0->height();
     std::cout << "init labelWidth: "<< labelWidth << " labelHeight: " << labelHeight << std::endl;
     std::cout << ui.camera->width() << " " << ui.camera->height() << std::endl;
-    video0Max=false;
-    video1Max=false;
-    video2Max=false;
-    video3Max=false;
+    videoMax=false;
     ui.camera_0->installEventFilter(this);
     ui.camera_1->installEventFilter(this);
     ui.camera_2->installEventFilter(this);
@@ -98,7 +96,6 @@ void MainWindow::initial() {
     // 设置默认主题
     QString qss = darcula_qss;
     qApp->setStyleSheet(qss);
-
 }
 
 
@@ -200,30 +197,27 @@ void MainWindow::showNoMasterMessage() {
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     // std::cout << "init temp: "<< tempWidth << " label: " << labelWidth << std::endl;
     if (event->type() == QEvent::MouseButtonDblClick) {
-        if (obj == ui.camera_0) {
-            if (video0Max) {
-                // 当前 camera_0 为最大化状态，要将其变为正常
-                ui.camera_1->setVisible(true);
-                ui.camera_2->setVisible(true);
-                ui.camera_3->setVisible(true);
-
-                labelWidth = ui.camera_0->width()/2;
-                labelHeight = ui.camera_0->height()/2;
-                std::cout << "恢复正常: "<< labelWidth << " label: " << labelHeight << std::endl;
-            } else {
-                // 当前 camera_0 为正常显示，要将其最大化
-                ui.camera_1->setVisible(false);
-                ui.camera_2->setVisible(false);
-                ui.camera_3->setVisible(false);
-                
-                labelWidth = ui.camera->width();
-                labelHeight = ui.camera->height();
-                std::cout << "最大化: "<< labelWidth << " label: " << labelHeight << std::endl;
-            }
-            video0Max = !video0Max;
+        QLabel *widget = (QLabel *) obj;
+        if (videoMax) {
+            // 当前为最大化状态，首先把当前的画面移除
+            labelWidth = widget->width() / 2;
+            labelHeight = widget->height() / 2;
+            ui.camera_0->setVisible(true);
+            ui.camera_1->setVisible(true);
+            ui.camera_2->setVisible(true);
+            ui.camera_3->setVisible(true);
         } else {
+            // 当前未正产状态，需要将其最大化
+            labelWidth = widget->width() * 2;
+            labelHeight = widget->height() * 2;
+            ui.camera_0->setVisible(false);
+            ui.camera_1->setVisible(false);
+            ui.camera_2->setVisible(false);
+            ui.camera_3->setVisible(false);
 
+            widget->setVisible(true);
         }
+        videoMax = !videoMax;
     }
     return QObject::eventFilter(obj, event);
 }
@@ -231,8 +225,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 /******************** 槽函数 *********************/
 
 void MainWindow::testButton() {
-    std::cout << " Test Button" << std::endl;
-    std::cout << ui.camera_0->width() << " " << ui.camera_0->height();
+    std::cout << "Test Button: " << std::endl;
+    std::cout << "camera_0: " << ui.camera_0->width() << " " << ui.camera_0->height() << std::endl;
+    std::cout << "camera_1: " << ui.camera_1->width() << " " << ui.camera_1->height() << std::endl;
+    std::cout << "camera_2: " << ui.camera_2->width() << " " << ui.camera_2->height() << std::endl;
+    std::cout << "camera_3: " << ui.camera_3->width() << " " << ui.camera_3->height() << std::endl;
 }
 
 void MainWindow::showConfigPanel() {
@@ -284,11 +281,20 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
         default: label = ui.camera_3;
             break;
     }
-    scaleImage = img.scaled(label->width(), label->height());
-    // QImage scaleImage = img.scaled(labelWidth, labelHeight);
-    label->setScaledContents(true);
+    // scaleImage = img.scaled(label->width(), label->height());
+    if (!firstImage) {
+        label->setFixedSize(labelWidth, labelHeight);
+    }
+    scaleImage = img.scaled(labelWidth, labelHeight);
+    // label->setScaledContents(true);
     label->setPixmap(QPixmap::fromImage(scaleImage));
     qimage_mutex_.unlock();
+    if (firstImage) {
+        // 第一次渲染时候获取到画面宽度
+        labelHeight = label->height();
+        labelWidth = label->width();
+        firstImage = false;
+    }
 }
 
 
