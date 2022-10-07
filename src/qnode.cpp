@@ -114,7 +114,8 @@ void QNode::run() {
 	ros::CallbackQueue callback_queue_b;
 	n_b.setCallbackQueue(&callback_queue_b);
 	image_transport::ImageTransport it_b(n_b);
-	image_sub2 = it_b.subscribe("/hik_image", 1, boost::bind(&QNode::Callback, this, _1, 1));
+	topic = this->configInfo->imageTopics.at(1).toStdString();
+	image_sub2 = it_b.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 1));
 	std::thread spinner_thread_b([&callback_queue_b](){
 		ros::SingleThreadedSpinner spinner_b;
 		spinner_b.spin(&callback_queue_b);
@@ -124,7 +125,8 @@ void QNode::run() {
 	ros::CallbackQueue callback_queue_c;
 	n_c.setCallbackQueue(&callback_queue_c);
 	image_transport::ImageTransport it_c(n_c);
-	image_sub3 = it_c.subscribe("/hik_image_3", 1, boost::bind(&QNode::Callback, this, _1, 2));
+	topic = this->configInfo->imageTopics.at(2).toStdString();
+	image_sub3 = it_c.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 2));
 	std::thread spinner_thread_c([&callback_queue_c](){
 		ros::SingleThreadedSpinner spinner_c;
 		spinner_c.spin(&callback_queue_c);
@@ -134,7 +136,8 @@ void QNode::run() {
 	ros::CallbackQueue callback_queue_d;
 	n_d.setCallbackQueue(&callback_queue_d);
 	image_transport::ImageTransport it_d(n_d);
-	image_sub4 = it_d.subscribe("/hik_image_4", 1, boost::bind(&QNode::Callback, this, _1, 3));
+	topic = this->configInfo->imageTopics.at(3).toStdString();
+	image_sub4 = it_d.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 3));
 	std::thread spinner_thread_d([&callback_queue_d](){
 		ros::SingleThreadedSpinner spinner_d;
 		spinner_d.spin(&callback_queue_d);
