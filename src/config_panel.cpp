@@ -18,8 +18,10 @@ ConfigPanel::ConfigPanel(QWidget *parent) :
 
     ui->ros_address->setText("http://192.168.50.23:11311");
     ui->ros_port->setText("11311");
-    ui->ros_topic->setText("/camera/hik_image");
-
+    ui->ros_topic_1->setText("/hik_cam_node/hik_camera");
+    ui->ros_topic_2->setText("/hik_image");
+    ui->ros_topic_3->setText("/hik_cam_node/hik_camera3");
+    ui->ros_topic_4->setText("/hik_cam_node/hik_camera4");
     initWindow();
 }
 
@@ -32,7 +34,7 @@ ConfigPanel::~ConfigPanel()
 void ConfigPanel::initWindow() {
 
     // 设置窗体居中显示，并且不能更改大小
-    this->setFixedSize(400, 300);
+    this->setFixedSize(400, 500);
     QDesktopWidget desktop;
     int screenX=desktop.availableGeometry().width();
     int screenY=desktop.availableGeometry().height();
@@ -50,11 +52,24 @@ void ConfigPanel::initWindow() {
 }
 
 void ConfigPanel::ros_connect_clicked() {
+    ConfigInfo *configInfo = new ConfigInfo();
+    configInfo->ros_address = ui->ros_address->text();
+    configInfo->port = ui->ros_port->text();
 
-    QString ros_address = ui->ros_address->text();
-    QString ros_port = ui->ros_port->text();
-    QString ros_topic = ui->ros_topic->text();
-    Q_EMIT ros_input_over(ros_address, ros_port, ros_topic);
+    QString topic_1 = ui->ros_topic_1->text();
+    if (!topic_1.isEmpty())
+        configInfo->imageTopics.push_back(topic_1);
+    QString topic_2 = ui->ros_topic_2->text();
+    if (!topic_2.isEmpty())
+        configInfo->imageTopics.push_back(topic_2);
+    QString topic_3 = ui->ros_topic_3->text();
+    if (!topic_3.isEmpty())
+        configInfo->imageTopics.push_back(topic_3);    
+    QString topic_4 = ui->ros_topic_4->text();
+    if (!topic_4.isEmpty())
+        configInfo->imageTopics.push_back(topic_4);
+    
+    Q_EMIT getConfigInfo(configInfo);
 
     // 判断是否连接成功
     // 1. 初始化 节点

@@ -15,6 +15,9 @@
 #include <string>
 
 #include <QThread>
+#include <QString>
+#include <QStringList>
+
 #include <thread>
 #include <std_msgs/String.h>
 #include <opencv2/dnn.hpp>
@@ -25,12 +28,20 @@
 #include <cv_bridge/cv_bridge.h>
 
 
+struct ConfigInfo {
+	QString ros_address;
+	QString port;
+	std::vector<QString> imageTopics;
+};
+
+
+
 class QNode : public QThread {
     Q_OBJECT
 public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
-	bool init();
+	bool init(ConfigInfo *config);
 	bool init(const std::string &master_url, const std::string &host_url, const std::string &topic);
 
 	void run();
@@ -46,6 +57,7 @@ private:
 	int init_argc;
 	char** init_argv;
 
+	ConfigInfo *configInfo;
 	
   	image_transport::Subscriber image_sub;
 	image_transport::Subscriber image_sub2;

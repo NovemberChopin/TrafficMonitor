@@ -51,7 +51,7 @@ protected:
 public Q_SLOTS:
 	void testButton();
 	// 处理配置弹窗
-	void connectByConfig(QString ros_address, QString ros_port, QString ros_topic);
+	void connectByConfig(ConfigInfo*);
 
 	// 处理接收图片的信号槽
     void setImage(cv::Mat image, int cam_index);

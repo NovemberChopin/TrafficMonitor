@@ -51,7 +51,10 @@ void QNode::Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index) {
 }
 
 
-bool QNode::init() {
+bool QNode::init(ConfigInfo *config) {
+	// 把话题信息给本地成员变量
+	this->configInfo = config;
+
 	ros::init(init_argc,init_argv,"Monitor");
 	if ( ! ros::master::check() ) {
 		return false;
@@ -94,12 +97,14 @@ void QNode::run() {
 
 
 	// 订阅多个Topic，每个Subscriber有一个Callback queue
+	std::string topic;
 	ros::NodeHandle n_a;
 	ros::CallbackQueue callback_queue_a;
 	n_a.setCallbackQueue(&callback_queue_a);
 	image_transport::ImageTransport it(n_a);
 	// 0 表示 Callback 的第二个参数 cam_index
-	image_sub = it.subscribe("/hik_cam_node/hik_camera", 1, boost::bind(&QNode::Callback, this, _1, 0));
+	topic = this->configInfo->imageTopics.at(0).toStdString();
+	image_sub = it.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 0));
 	std::thread spinner_thread_a([&callback_queue_a](){
 		ros::SingleThreadedSpinner spinner_a;
 		spinner_a.spin(&callback_queue_a);
@@ -139,26 +144,29 @@ void QNode::run() {
 	spinner_thread_c.join();
 	spinner_thread_d.join();
 
-	// std::vector<string> strList;
-	// strList.push_back("/hik_cam_node/hik_camera");
-	// strList.push_back("/hik_image");
-	// std::cout << "****** " << strList.size() << std::endl;
-	// for (int i=0; i<strList.size(); i++) {
+	// int topic_num = this->configInfo->imageTopics.size();
+	// std::vector<std::thread> topic_threads;
+	// std::vector<image_transport::Subscriber> image_subs;
+
+	// for (int i=0; i<topic_num; i++) {
 	// 	ros::NodeHandle n;
 	// 	ros::CallbackQueue callback_queue;
 	// 	n.setCallbackQueue(&callback_queue);
 	// 	image_transport::ImageTransport it(n);
 	// 	// 0 表示 Callback 的第二个参数 cam_index
-	// 	if (i==0) {
-	// 		image_sub = it.subscribe(strList.at(i), 1, boost::bind(&QNode::Callback, this, _1, i));
-	// 	} else if (i==1) {
-	// 		image_sub2 = it.subscribe(strList.at(i), 1, boost::bind(&QNode::Callback, this, _1, i));
-	// 	}
+	// 	image_transport::Subscriber image_sub;
+	// 	image_sub = it.subscribe(this->configInfo->imageTopics[i].toStdString(), 
+	// 								1, boost::bind(&QNode::Callback, this, _1, i));
+	// 	image_subs.push_back(image_sub);
 	// 	std::thread spinner_thread([&callback_queue](){
 	// 		ros::SingleThreadedSpinner spinner;
 	// 		spinner.spin(&callback_queue);
 	// 	});
-	// 	spinner_thread.join();
+	// 	topic_threads.push_back(spinner_thread);
+	// }
+
+	// for (int i=0; i<topic_num; i++) {
+	// 	topic_threads[i].join();
 	// }
 }
 

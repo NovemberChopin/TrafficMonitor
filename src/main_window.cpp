@@ -38,8 +38,8 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
 
     //接收登录页面传来的数据
-    connect(configP, SIGNAL(ros_input_over(QString, QString, QString)), 
-            this, SLOT(connectByConfig(QString, QString, QString)));
+    connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), 
+            this, SLOT(connectByConfig(ConfigInfo*)));
 
     // 初始化
     initial();
@@ -159,12 +159,10 @@ cv::Point3f MainWindow::cameraToWorld(cv::Point2f point) {
 	//wcPoint = invR_x_invM_x_uv1 - invR_x_tvec;
 	cv::Point3f worldCoordinates(wcPoint.at<double>(0, 0), wcPoint.at<double>(1, 0), wcPoint.at<double>(2, 0));
 
-	// std::cerr << "Camera Coordinates:" << screenCoordinates << std::endl << std::endl;
-	// std::cerr << "World Coordinates: " << worldCoordinates  << std::endl << std::endl;
-	std::cout << "[" << screenCoordinates.at<double>(0, 0) << ","
-			 << screenCoordinates.at<double>(1, 0) << "] -> ["
-			 << worldCoordinates.x << "," << worldCoordinates.y << "]"
-			 << std::endl;
+	// std::cout << "[" << screenCoordinates.at<double>(0, 0) << ","
+	// 		 << screenCoordinates.at<double>(1, 0) << "] -> ["
+	// 		 << worldCoordinates.x << "," << worldCoordinates.y << "]"
+	// 		 << std::endl;
     return worldCoordinates;
 }
 
@@ -242,12 +240,11 @@ void MainWindow::showConfigPanel() {
     configP->show();
 }
 
-void MainWindow::connectByConfig(QString ros_address, QString ros_port, QString ros_topic) {
-    qDebug() << ros_address;
-    qDebug() << ros_port;
-    qDebug() << ros_topic;
-
-    if (!qnode.init()) {
+void MainWindow::connectByConfig(ConfigInfo *config) {
+    qDebug() << "--------- Config Info ---------";
+    qDebug() << config->ros_address;
+    qDebug() << config->port;
+    if (!qnode.init(config)) {
         // 连接失败
         showNoMasterMessage();
     } else {

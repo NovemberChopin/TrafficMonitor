@@ -4,7 +4,7 @@
 #include <QWidget>
 #include "ui_config_panel.h"
 #include <QString>
-
+#include "qnode.hpp"
 
 
 class ConfigPanel : public QWidget
@@ -18,7 +18,7 @@ public:
     void ros_connect_clicked();
 
 Q_SIGNALS:
-    void ros_input_over(QString ros_address, QString ros_port, QString ros_topic);
+    void getConfigInfo(ConfigInfo *config);
 
 private:
 
