@@ -32,7 +32,8 @@ public:
 
 	void setEventTable();
 
-	void consoleLog(QString level, QString result, QString opera);
+	void addTrafficEvent(QString type, QString level, QString result, QString opera);
+	void addTrafficEvent(TrafficEvent* traffic);
 
 	void processOD(cv::Mat &image, int interval, int cam_index);
 
@@ -74,9 +75,11 @@ private:
 	cv::Point3f cameraCoord;	// 相机在世界坐标下的位置
 	cv::Size image_size;
 	cv::Mat map1, map2;			// 图像输出映射
-	int interval;
+	int interval;				// 目标检测间隔
 
-	bool needSave = true;
+	bool needSave = true;		// 临时成员变量
+
+	vector<TrafficEvent*> trafficList;		// 保存事件
 
 	// 窗口尺寸
 	bool firstImage;

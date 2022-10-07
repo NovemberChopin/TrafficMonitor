@@ -94,8 +94,9 @@ void MainWindow::initial() {
     // 设置下方事件区域
     ui.consoleTable->setSelectionMode(QAbstractItemView::NoSelection);  // 禁止点击输出窗口的 item
     setEventTable();
-    consoleLog("hight", "right", "detial");
-
+    // 事件添加样例
+    // addTrafficEvent("Person", "hight", "right", "detail");
+    
     // 设置默认主题
     QString qss = darcula_qss;
     qApp->setStyleSheet(qss);
@@ -142,7 +143,7 @@ void MainWindow::setEventTable() {
     ui.consoleTable->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
-void MainWindow::consoleLog(QString level, QString result, QString opera) {
+void MainWindow::addTrafficEvent(QString type, QString level, QString result, QString opera) {
   int rows = ui.consoleTable->rowCount();
   ui.consoleTable->setRowCount(++rows);
   QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
@@ -150,17 +151,39 @@ void MainWindow::consoleLog(QString level, QString result, QString opera) {
   qDebug() << rows;
   ui.consoleTable->setItem(rows - 1, 0, new QTableWidgetItem(QString::number(rows)));
   ui.consoleTable->setItem(rows - 1, 1, new QTableWidgetItem(time_str));
-  ui.consoleTable->setItem(rows - 1, 2, new QTableWidgetItem(level));
-  ui.consoleTable->setItem(rows - 1, 3, new QTableWidgetItem(result));
-  ui.consoleTable->setItem(rows - 1, 4, new QTableWidgetItem(opera));
+  ui.consoleTable->setItem(rows - 1, 2, new QTableWidgetItem(type));
+  ui.consoleTable->setItem(rows - 1, 3, new QTableWidgetItem(level));
+  ui.consoleTable->setItem(rows - 1, 4, new QTableWidgetItem(result));
+  ui.consoleTable->setItem(rows - 1, 5, new QTableWidgetItem(opera));
   ui.consoleTable->scrollToBottom(); // 滑动自动滚到最底部
+}
+
+
+void MainWindow::addTrafficEvent(TrafficEvent* traffic) {
+    int rows = ui.consoleTable->rowCount();
+    ui.consoleTable->setRowCount(++rows);
+    ui.consoleTable->setItem(rows - 1, 0, new QTableWidgetItem(QString::number(rows)));
+    ui.consoleTable->setItem(rows - 1, 1, new QTableWidgetItem(traffic->time));
+    ui.consoleTable->setItem(rows - 1, 2, new QTableWidgetItem(traffic->type));
+    ui.consoleTable->setItem(rows - 1, 3, new QTableWidgetItem(traffic->level));
+    ui.consoleTable->setItem(rows - 1, 4, new QTableWidgetItem(traffic->result));
+    ui.consoleTable->setItem(rows - 1, 5, new QTableWidgetItem(QString("查看")));
+    ui.consoleTable->scrollToBottom(); // 滑动自动滚到最底部
 }
 
 
  
 void MainWindow::consoleClick(QTableWidgetItem* item) {
-    qDebug() << "dgv click: " << item->text();
+    qDebug() << "dgv click: " << item->text() << ": " << item->row();
+    // 根据 item->row() 获取当前事件的 num
+    int index = item->row();
+    trafficD->showTrafficImage(trafficList.at(index)->image);
     trafficD->show();
+    // std::cout << trafficList.at(index)->time.toStdString() << " " << trafficList.at(index)->level.toStdString() << std::endl;
+    // cv::Mat frame = trafficList.at(index)->image;
+    // std::cout << frame.rows << " " << frame.cols << std::endl;
+    // cv::imshow("frame", trafficList.at(index)->image);
+    // waitKey(0);
 }
 
 void MainWindow::showNoMasterMessage() {
@@ -267,13 +290,20 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     cv::Mat imageCalib;     // 畸变修复后的图像
     cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
 
+    // int cam_index = 0;
+    processOD(imageCalib, interval, cam_index);
+
+    // 保存接收到的第一帧图片（测试用）
     if (needSave) {
         cv::imwrite("./test.png", imageCalib);
         needSave = !needSave;
+        // 添加事件列表的样例
+        QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+        QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+        TrafficEvent* traffic = new TrafficEvent(time_str, "Person", "高", "正确", imageCalib);
+        trafficList.push_back(traffic);
+        this->addTrafficEvent(traffic);             // 添加进事件展示列表
     }
-
-    // int cam_index = 0;
-    processOD(imageCalib, interval, cam_index);
     
     cv::Mat showImg;
     cvtColor(imageCalib, showImg, CV_BGR2RGB);

@@ -3,7 +3,26 @@
 
 #include <QWidget>
 #include <QString>
+#include <QLabel>
 #include "qnode.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core/core.hpp>
+
+#include "ui_traffic_detail.h"
+
+struct TrafficEvent
+{
+    QString time;
+    QString type;
+    QString level;
+    QString result;
+    cv::Mat image;
+    TrafficEvent() {}
+    TrafficEvent(QString time, QString type, QString level, QString result, cv::Mat image) : 
+                time(time), type(type), level(level), result(result), image(image) {}
+};
 
 
 class TrafficDetail : public QWidget
@@ -14,14 +33,16 @@ public:
     explicit TrafficDetail(QWidget *parent = 0);
     ~TrafficDetail();
 
-    // void ros_connect_clicked();
+    void showTrafficImage(cv::Mat image);
 
+    void closePanal() {
+        this->close();
+    }
 Q_SIGNALS:
-    // void getConfigInfo(ConfigInfo *config);
+
 
 private:
-
-    // void initWindow();
+    Ui::TrafficDetail* ui;
 };
 
 

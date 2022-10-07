@@ -298,6 +298,14 @@
                      </column>
                      <column>
                       <property name="text">
+                       <string>类型</string>
+                      </property>
+                      <property name="textAlignment">
+                       <set>AlignLeading|AlignVCenter</set>
+                      </property>
+                     </column>
+                     <column>
+                      <property name="text">
                        <string>事件等级</string>
                       </property>
                       <property name="textAlignment">
