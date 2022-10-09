@@ -10,8 +10,47 @@ camera_matrix: !!opencv-matrix
        795.28917,   0.     , 624.15859,
        0.     , 799.53981, 356.17181,
        0.     ,   0.     ,   1.     ]
-distortion_coefficients: !!opencv-matrix
+dist_coeffs: !!opencv-matrix
    rows: 5
    cols: 1
    dt: d
    data: [ -0.387154, 0.116917, -0.004499, 0.003409, 0.000000 ]
+
+camera_matrix_0: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [
+       795.28917,   0.     , 624.15859,
+       0.     , 799.53981, 356.17181,
+       0.     ,   0.     ,   1.     ]
+dist_coeffs_0: !!opencv-matrix
+   rows: 5
+   cols: 1
+   dt: d
+   data: [ -0.387154, 0.116917, -0.004499, 0.003409, 0.000000 ]
+
+camera_matrix_1: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [
+       795.28917,   0.     , 624.15859,
+       0.     , 799.53981, 356.17181,
+       0.     ,   0.     ,   1.     ]
+dist_coeffs_1: !!opencv-matrix
+   rows: 5
+   cols: 1
+   dt: d
+   data: [ -0.387154, 0.116917, -0.004499, 0.003409, 0.000000 ]
+
+imagepoints: [
+    643.33, 643.33,
+    486.66, 581.33,
+    612.66, 524.00,
+    760.66, 563.33 ]
+worldpoints: [
+    1.60, 1.60, 00.00,
+    2.40, 1.60, 00.00,
+    2.40, 2.40, 00.00,    
+    1.60, 2.40, 00.00 ]

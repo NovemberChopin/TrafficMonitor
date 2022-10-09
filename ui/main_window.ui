@@ -66,16 +66,16 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_quit">
+           <widget class="QPushButton" name="btn_loadMatrix">
             <property name="text">
-             <string>退出</string>
+             <string>加载相机参数</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_test">
+           <widget class="QPushButton" name="btn_quit">
             <property name="text">
-             <string>PushButton</string>
+             <string>退出</string>
             </property>
            </widget>
           </item>
