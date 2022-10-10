@@ -68,26 +68,32 @@ void MainWindow::initial() {
     
     // 添加右键弹出菜单
     m_pOptMenu = new QMenu(this);
-    m_pDelAction = new QAction(QStringLiteral("配置相机"), this);
-    m_pSaveAction = new QAction(QStringLiteral("保存"), this);
-    m_pOptMenu->addAction(m_pDelAction);
-	m_pOptMenu->addAction(m_pSaveAction);
+    m_pConfigAction = new QAction(QStringLiteral("配置相机"), this);
+    m_pLoadAction = new QAction(QStringLiteral("加载配置"), this);
+    m_pSaveAction = new QAction(QStringLiteral("保存配置"), this);
+    m_pOptMenu->addAction(m_pConfigAction);
+	m_pOptMenu->addAction(m_pLoadAction);
+    m_pOptMenu->addAction(m_pSaveAction);
     ui.camera->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(m_pConfigAction, &QAction::triggered, this, &MainWindow::menu_pop_config);
+    QObject::connect(m_pLoadAction, &QAction::triggered, this, &MainWindow::menu_pop_load_config);
+    QObject::connect(m_pSaveAction, &QAction::triggered, this, &MainWindow::menu_pop_save_config);
+
     connect(ui.camera, &QLabel::customContextMenuRequested, [=](const QPoint &pos) {
         //参数pos用来传递右键点击时的鼠标的坐标，这个坐标一般是相对于控件左上角而言的
-        // qDebug()<<pos << " " << ui.camera_0->width() << ui.camera_0->height();
-        int center_x = ui.camera->geometry().width();
-        int center_y = ui.camera->geometry().height();
-        // int x = pos.x, y = pos.y;
-        // if (x < center_x && y < center_y) {
-        //     qDebug()<< pos << ": camera_0";
-        // } else if (x > center_x && y < center_y) {
-        //     qDebug()<< pos << ": camera_1";
-        // } else if (x < center_x && y > center_y) {
-        //     qDebug()<< pos << ": camera_2";
-        // } else {
-        //     qDebug()<< pos << ": camera_3";
-        // }
+        int center_x = ui.camera->geometry().width() / 2;
+        int center_y = ui.camera->geometry().height() / 2;
+        int x = pos.x(), y = pos.y();
+        
+        if (x < center_x && y < center_y) {
+            qDebug()<< pos << ": camera_0";
+        } else if (x > center_x && y < center_y) {
+            qDebug()<< pos << ": camera_1";
+        } else if (x < center_x && y > center_y) {
+            qDebug()<< pos << ": camera_2";
+        } else {
+            qDebug()<< pos << ": camera_3";
+        }
         this->m_pOptMenu->exec(QCursor::pos());
     });
 
@@ -110,6 +116,12 @@ void MainWindow::initial() {
     // m_checkbox1->setCheckState(Qt::PartiallyChecked)
     QObject::connect(ui.cb_person, &QCheckBox::stateChanged, this, &MainWindow::slot_checkbox_change);
     QObject::connect(ui.cb_car, &QCheckBox::stateChanged, this, &MainWindow::slot_checkbox_change);
+    QObject::connect(ui.btn_reverse, &QPushButton::clicked, this, &MainWindow::slot_reverse_event);
+    QObject::connect(ui.btn_block, &QPushButton::clicked, this, &MainWindow::slot_block_event);
+    QObject::connect(ui.btn_changeLine, &QPushButton::clicked, this, &MainWindow::slot_changeLine_event);
+    QObject::connect(ui.btn_park, &QPushButton::clicked, this, &MainWindow::slot_park_event);
+    QObject::connect(ui.btn_intrude, &QPushButton::clicked, this, &MainWindow::slot_intrude_event);
+
 
     // 设置下方事件区域
     ui.consoleTable->setSelectionMode(QAbstractItemView::NoSelection);  // 禁止点击输出窗口的 item
@@ -120,22 +132,6 @@ void MainWindow::initial() {
     // 设置默认主题
     QString qss = darcula_qss;
     qApp->setStyleSheet(qss);
-}
-
-
-void MainWindow::slot_checkbox_change() {
-    if (ui.cb_person->isChecked()) {    // person
-        this->needDetectPerson = true;
-    } else {
-        this->needDetectPerson = false;
-    }
-
-    if(ui.cb_car->isChecked()) {        // car
-        this->needDetectCar = true;
-    } else {
-        this->needDetectCar = false;
-    }
-    qDebug()<<"needDetectPerson: " << needDetectPerson << " needDetectCar: " << needDetectCar;
 }
 
 
@@ -332,6 +328,63 @@ cv::Point3f MainWindow::cameraToWorld(cv::Point2f point, int cam_index) {
 
 
 /******************** 槽函数 *********************/
+
+
+void MainWindow::menu_pop_config() {
+    qDebug() << "menu_pop_config";
+}
+
+void MainWindow::menu_pop_load_config() {
+    qDebug() << "menu_pop_load_config";
+}
+
+void MainWindow::menu_pop_save_config() {
+    qDebug() << "menu_pop_save_config";
+}
+
+/**
+ * @brief 处理复选框状态改变槽函数
+ * 
+ */
+void MainWindow::slot_checkbox_change() {
+    if (ui.cb_person->isChecked()) {    // person
+        this->needDetectPerson = true;
+    } else {
+        this->needDetectPerson = false;
+    }
+
+    if(ui.cb_car->isChecked()) {        // car
+        this->needDetectCar = true;
+    } else {
+        this->needDetectCar = false;
+    }
+    qDebug()<<"needDetectPerson: " << needDetectPerson << " needDetectCar: " << needDetectCar;
+}
+
+
+/// 左侧面板事件槽函数
+
+void MainWindow::slot_reverse_event() {
+    qDebug() << "slot_reverse_event";
+}
+
+void MainWindow::slot_block_event() {
+    qDebug() << "slot_block_event";
+}
+
+void MainWindow::slot_changeLine_event() {
+    qDebug() << "slot_changeLine_event";
+}
+
+void MainWindow::slot_park_event() {
+    qDebug() << "slot_park_event";
+}
+
+void MainWindow::slot_intrude_event() {
+    qDebug() << "slot_intrude_event";
+}
+
+
 
 void MainWindow::showConfigPanel() {
     std::cout << "Show Config Panel" << std::endl;

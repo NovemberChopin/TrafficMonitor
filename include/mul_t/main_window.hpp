@@ -67,8 +67,18 @@ public Q_SLOTS:
 	// QTableWidget 单元格点击事件 (展示事件详情)
 	void consoleClick(QTableWidgetItem* item);
 	void showConfigPanel();
-
+	// 处理左侧面板事件槽函数
 	void slot_checkbox_change();		// 复选框状态槽函数
+	void slot_reverse_event();			// 逆行事件
+	void slot_block_event();			// 拥堵事件
+	void slot_changeLine_event();		// 异常变道事件
+	void slot_park_event();				// 异常停车事件
+	void slot_intrude_event();			// 弱势参与者闯入事件
+
+	// 右键弹出菜单
+	void menu_pop_config();
+	void menu_pop_load_config();
+	void menu_pop_save_config();
 
 private:
 	Ui::MainWindowDesign ui;
@@ -104,7 +114,8 @@ private:
 
 	// 右键弹窗变量
 	QMenu *m_pOptMenu;
-	QAction *m_pDelAction;
+	QAction *m_pConfigAction;
+	QAction *m_pLoadAction;
 	QAction *m_pSaveAction;
 };
 

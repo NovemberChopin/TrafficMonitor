@@ -38,6 +38,8 @@ void TrafficDetail::showTrafficImage(cv::Mat frame) {
     // cvtColor(frame, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
+    QSize imgSize = ui->label->size();
+    qDebug() << imgSize << " : " << ui->label->geometry();
     QImage scaleImage = img.scaled(640, 360, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     ui->label->setScaledContents(true);
     ui->label->setPixmap(QPixmap::fromImage(scaleImage));
