@@ -36,7 +36,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     interval = 5;       // 物体检测间隔
     
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
-    QObject::connect(ui.btn_config, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
+    QObject::connect(ui.btn_config_ros, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
     // QTableWidget 单元格点击事件 SLOT
     QObject::connect(ui.consoleTable ,SIGNAL(itemClicked(QTableWidgetItem*)), this, SLOT(consoleClick(QTableWidgetItem*)));
@@ -63,6 +63,33 @@ void MainWindow::initial() {
     int screenX = desktop.availableGeometry().width();
     int screenY = desktop.availableGeometry().height();
     this->resize(screenX, screenY);
+    // QLabel * label = new QLabel();
+    // QRect *re = label->geometry();
+    
+    // 添加右键弹出菜单
+    m_pOptMenu = new QMenu(this);
+    m_pDelAction = new QAction(QStringLiteral("配置相机"), this);
+    m_pSaveAction = new QAction(QStringLiteral("保存"), this);
+    m_pOptMenu->addAction(m_pDelAction);
+	m_pOptMenu->addAction(m_pSaveAction);
+    ui.camera->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui.camera, &QLabel::customContextMenuRequested, [=](const QPoint &pos) {
+        //参数pos用来传递右键点击时的鼠标的坐标，这个坐标一般是相对于控件左上角而言的
+        // qDebug()<<pos << " " << ui.camera_0->width() << ui.camera_0->height();
+        int center_x = ui.camera->geometry().width();
+        int center_y = ui.camera->geometry().height();
+        // int x = pos.x, y = pos.y;
+        // if (x < center_x && y < center_y) {
+        //     qDebug()<< pos << ": camera_0";
+        // } else if (x > center_x && y < center_y) {
+        //     qDebug()<< pos << ": camera_1";
+        // } else if (x < center_x && y > center_y) {
+        //     qDebug()<< pos << ": camera_2";
+        // } else {
+        //     qDebug()<< pos << ": camera_3";
+        // }
+        this->m_pOptMenu->exec(QCursor::pos());
+    });
 
     // 设置可变相机画面大小
     firstImage = true;
@@ -76,6 +103,14 @@ void MainWindow::initial() {
     ui.camera_2->installEventFilter(this);
     ui.camera_3->installEventFilter(this);
 
+    // 设置左侧面板
+    this->needDetectPerson = false;
+    this->needDetectCar = false;
+    // QCheckBox *m_checkbox1 = new QCheckBox("check_box1", this);
+    // m_checkbox1->setCheckState(Qt::PartiallyChecked)
+    QObject::connect(ui.cb_person, &QCheckBox::stateChanged, this, &MainWindow::slot_checkbox_change);
+    QObject::connect(ui.cb_car, &QCheckBox::stateChanged, this, &MainWindow::slot_checkbox_change);
+
     // 设置下方事件区域
     ui.consoleTable->setSelectionMode(QAbstractItemView::NoSelection);  // 禁止点击输出窗口的 item
     setEventTable();
@@ -87,6 +122,21 @@ void MainWindow::initial() {
     qApp->setStyleSheet(qss);
 }
 
+
+void MainWindow::slot_checkbox_change() {
+    if (ui.cb_person->isChecked()) {    // person
+        this->needDetectPerson = true;
+    } else {
+        this->needDetectPerson = false;
+    }
+
+    if(ui.cb_car->isChecked()) {        // car
+        this->needDetectCar = true;
+    } else {
+        this->needDetectCar = false;
+    }
+    qDebug()<<"needDetectPerson: " << needDetectPerson << " needDetectCar: " << needDetectCar;
+}
 
 
 /**
@@ -252,7 +302,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 /**
  * @brief 把像素坐标转化为世界坐标
  * 
- * @param x 像素 x 坐标
+ * @pax 像素 x 坐标
  * @param y 像素 y 坐标
  * @return cv::Point3f 世界坐标
  */
@@ -297,7 +347,7 @@ void MainWindow::connectByConfig(ConfigInfo *config) {
         showNoMasterMessage();
     } else {
         // 连接成功
-        ui.btn_config->setEnabled(false);
+        ui.btn_config_ros->setEnabled(false);
     }
 }
 
@@ -312,7 +362,11 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
         imageCalib = image;
     }
 
-    processOD(imageCalib, interval, cam_index);
+    // 物体检测（跟踪）过程
+    if (this->needDetectPerson || this->needDetectCar) {
+        processOD(imageCalib, interval, cam_index);
+    }
+    
 
     // 保存接收到的第一帧图片（测试用）
     if (needSave) {
@@ -327,8 +381,8 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     }
     
     // qimage_mutex_.lock();
-    cv::Mat showImg;
-    cvtColor(imageCalib, showImg, CV_BGR2RGB);
+    cv::Mat showImg = imageCalib;
+    // cvtColor(imageCalib, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
     QImage scaleImage;
@@ -424,7 +478,7 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
         int width = detec_info->track_boxes[i].width;
         int height = detec_info->track_boxes[i].height;
         objectD->drawPred(detec_info->track_classIds[i], detec_info->track_confidences[i], 
-                      speeds[i], distances[i],  x, y, x+width, y+height, image);
+                      speeds[i], distances[i],  x, y, x+width, y+height, image, needDetectPerson, needDetectCar);
     }
     // if (detec_info->track_confidences.size() > 1) {
     //     for (int i=0; i<detec_info->track_confidences.size(); i++) {

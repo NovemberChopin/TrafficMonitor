@@ -34,8 +34,8 @@ TrafficDetail::~TrafficDetail() {
 void TrafficDetail::showTrafficImage(cv::Mat frame) {
     // std::cout << frame.rows << " " << frame.cols << std::endl;
     // cv::imshow("frame", frame);
-    cv::Mat showImg;
-    cvtColor(frame, showImg, CV_BGR2RGB);
+    cv::Mat showImg = frame;
+    // cvtColor(frame, showImg, CV_BGR2RGB);
     QImage img = QImage((const unsigned char*)(showImg.data), showImg.cols, 
                                         showImg.rows, showImg.step, QImage::Format_RGB888);
     QImage scaleImage = img.scaled(640, 360, Qt::KeepAspectRatio, Qt::SmoothTransformation);

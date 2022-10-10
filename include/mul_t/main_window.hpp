@@ -11,7 +11,10 @@
 #include "config_panel.hpp"
 #include "traffic_detail.hpp"
 #include <QImage>
+#include <QMenu>
+#include <QAction>
 #include <QFileDialog>
+#include <QMouseEvent>
 #include <QMutex>
 #include <cmath>
 
@@ -47,6 +50,8 @@ public:
 
 	cv::Point2f getPixelPoint(Rect &rect);		// 计算检测框的像素坐标
 
+	// void contextMenuEvent(QContextMenuEvent * ev);
+
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
 
@@ -62,6 +67,8 @@ public Q_SLOTS:
 	// QTableWidget 单元格点击事件 (展示事件详情)
 	void consoleClick(QTableWidgetItem* item);
 	void showConfigPanel();
+
+	void slot_checkbox_change();		// 复选框状态槽函数
 
 private:
 	Ui::MainWindowDesign ui;
@@ -90,6 +97,15 @@ private:
 	bool firstImage;
 	bool videoMax;							// 是否为单（最大化）窗口播放
 	int labelWidth, labelHeight;
+
+	// 左侧面板变量
+	bool needDetectPerson;					// 是否检测行人
+	bool needDetectCar;						// 是否检测车辆
+
+	// 右键弹窗变量
+	QMenu *m_pOptMenu;
+	QAction *m_pDelAction;
+	QAction *m_pSaveAction;
 };
 
 }  // namespace mul_t

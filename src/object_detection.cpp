@@ -143,7 +143,7 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
             double confidence;
             // Get the value and location of the maximum score
             minMaxLoc(scores, 0, &confidence, 0, &classIdPoint);
-            if (confidence > confThreshold ||  (confidence > 0.2 && classIdPoint.x >= 2 && classIdPoint.x <= 7))
+            if (confidence > confThreshold ||  (confidence > 0.2 && classIdPoint.x > 0 && classIdPoint.x < 7))
             {
                 int centerX = (int)(data[0] * frame.cols);
                 int centerY = (int)(data[1] * frame.rows);
@@ -168,7 +168,7 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
     {
         int idx = indices[i];
         Rect box = boxes[idx];
-        if(classIds[idx]>=0 && classIds[idx]<=7) {
+        if(classIds[idx] < 7) {     // 只保存检测到的行人和车辆（class见resources/coco.names）
             detecRes.at(cam_index)->track_boxes.push_back(boxes[idx]);
             detecRes.at(cam_index)->track_classIds.push_back(classIds[idx]);
             detecRes.at(cam_index)->track_confidences.push_back(confidences[idx]);
@@ -185,7 +185,11 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
 
 // Draw the predicted bounding box
 void ObjectDetection::drawPred(int classId, float conf, float speed, float dist,
-                                int left, int top, int right, int bottom, Mat& frame) {
+                                int left, int top, int right, int bottom, Mat& frame,
+                                bool person, bool car) {
+    if (!person && classId == 0) return;
+    if (!car && classId > 0 && classId < 7) return;
+    
     //Draw a rectangle displaying the bounding box
     rectangle(frame, Point(left, top), Point(right, bottom), Scalar(255, 178, 50), 3);
     
@@ -196,7 +200,7 @@ void ObjectDetection::drawPred(int classId, float conf, float speed, float dist,
     if (!classes.empty())
     {
         CV_Assert(classId < (int)classes.size());
-        if(classId >= 3 && classId <= 7) classId = 2;
+        if(classId > 0 && classId < 7) classId = 1;     // 把检测到的各种车辆都显示为 car
         label = classes[classId] + ":" + label + " " + speed_label + " " + dist_label;
         // label = classes[classId];
     }

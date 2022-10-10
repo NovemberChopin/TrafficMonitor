@@ -43,13 +43,13 @@ private:
 	float confThreshold = 0.5; // Confidence threshold
 	float nmsThreshold = 0.4;  // Non-maximum suppression threshold
 
-	std::string classesFile = "/home/js/leishen_ws/src/mul_t/resources/coco.names";
+	std::string classesFile = "./src/mul_t/resources/coco.names";
 
-	// cv::String modelConfiguration = "/home/js/leishen_ws/src/mul_t/resources/yolov4-tiny.cfg";
-    // cv::String modelWeights = "/home/js/leishen_ws/src/mul_t/resources/yolov4-tiny.weights";
+	// cv::String modelConfiguration = "./src/mul_t/resources/yolov4-tiny.cfg";
+    // cv::String modelWeights = "./src/mul_t/resources/yolov4-tiny.weights";
 
-	cv::String modelConfiguration = "/home/js/leishen_ws/src/mul_t/resources/yolo-fastest-xl.cfg";
-    cv::String modelWeights = "/home/js/leishen_ws/src/mul_t/resources/yolo-fastest-xl.weights";
+	cv::String modelConfiguration = "./src/mul_t/resources/yolo-fastest-xl.cfg";
+    cv::String modelWeights = "./src/mul_t/resources/yolo-fastest-xl.weights";
 	vector<string> trackerTypes = {"BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"}; 
 
 public:
@@ -69,7 +69,8 @@ public:
     void runODModel(cv::Mat& frame, int cam_index);
 	vector<String> getOutputsNames(const Net& net);
 	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index);
-	void drawPred(int classId, float conf, float speed, float dist, int left, int top, int right, int bottom, Mat& frame);
+	void drawPred(int classId, float conf, float speed, float dist, 
+					int left, int top, int right, int bottom, Mat& frame, bool person, bool car);
 	// 物体跟踪相关函数
 	void runTrackerModel(cv::Mat & frame);
 	Ptr<Tracker> createTrackerByName(string trackerType);

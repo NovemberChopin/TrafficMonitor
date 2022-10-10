@@ -42,7 +42,7 @@ QNode::~QNode() {
 void QNode::Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index) {
 	cv::Mat img;
     try {
-        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::RGB8);
         img = cv_ptr->image;
 		Q_EMIT getImage(img, cam_index);
     } catch (cv_bridge::Exception& e) {

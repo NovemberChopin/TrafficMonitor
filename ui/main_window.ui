@@ -59,7 +59,7 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QPushButton" name="btn_config">
+           <widget class="QPushButton" name="btn_config_ros">
             <property name="text">
              <string>配置ROS</string>
             </property>
@@ -120,13 +120,13 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>300</width>
+              <width>200</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>300</width>
+              <width>200</width>
               <height>16777215</height>
              </size>
             </property>
@@ -144,35 +144,82 @@
               <number>9</number>
              </property>
              <item>
-              <widget class="QGroupBox" name="groupBox_2">
-               <property name="title">
-                <string>24小时事件统计</string>
+              <widget class="QLabel" name="label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>目标检测：</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QGroupBox" name="groupBox_3">
-               <property name="title">
-                <string>现场事件图片</string>
+              <widget class="QCheckBox" name="cb_person">
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
+               </property>
+               <property name="text">
+                <string>行人</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QWidget" name="widget_2" native="true">
-               <widget class="QLabel" name="label_3">
-                <property name="geometry">
-                 <rect>
-                  <x>40</x>
-                  <y>70</y>
-                  <width>131</width>
-                  <height>31</height>
-                 </rect>
-                </property>
-                <property name="text">
-                 <string>当月事件类型统计</string>
-                </property>
-               </widget>
+              <widget class="QCheckBox" name="cb_car">
+               <property name="text">
+                <string>车辆</string>
+               </property>
               </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_reverse">
+               <property name="text">
+                <string>交通逆行</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_block">
+               <property name="text">
+                <string>交通拥堵</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_changeLine">
+               <property name="text">
+                <string>异常变道</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_park">
+               <property name="text">
+                <string>异常停车</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_intrude">
+               <property name="text">
+                <string>弱势交通参与者闯入</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </widget>
@@ -349,13 +396,13 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>300</width>
+              <width>400</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>300</width>
+              <width>400</width>
               <height>16777215</height>
              </size>
             </property>
