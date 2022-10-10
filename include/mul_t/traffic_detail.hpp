@@ -2,15 +2,19 @@
 #define mul_t_TRAFFIC_DETAIL_HPP
 
 #include <QWidget>
+#include <QMainWindow>
+#include <QPushButton>
+#include <QVBoxLayout>
 #include <QString>
 #include <QLabel>
 #include "qnode.hpp"
+#include "my_label.hpp"
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/core/core.hpp>
 
-#include "ui_traffic_detail.h"
+// #include "ui_traffic_detail.h"
 
 struct TrafficEvent
 {
@@ -25,7 +29,7 @@ struct TrafficEvent
 };
 
 
-class TrafficDetail : public QWidget
+class TrafficDetail : public QMainWindow
 {
     Q_OBJECT
 
@@ -38,11 +42,13 @@ public:
     void closePanal() {
         this->close();
     }
-Q_SIGNALS:
-
 
 private:
-    Ui::TrafficDetail* ui;
+    // Ui::TrafficDetail* ui;
+    MyLabel *label;
+    QWidget *centerWgt;
+    QPushButton *btn_close;
+
 };
 
 
