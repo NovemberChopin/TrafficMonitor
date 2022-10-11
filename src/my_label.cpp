@@ -33,11 +33,11 @@ void MyLabel::initViewer()
 	m_pOptMenu = new QMenu(this);
 	m_pDelAction = new QAction(QStringLiteral("删除"), this);
 	connect(m_pDelAction, &QAction::triggered, this, [&]() { m_roiRect = QRect(0, 0, 0, 0); });
-	m_pSaveAction = new QAction(QStringLiteral("保存"), this);
-	connect(m_pSaveAction, &QAction::triggered, this, &MyLabel::saveROIImage);
+	// m_pSaveAction = new QAction(QStringLiteral("保存"), this);
+	// connect(m_pSaveAction, &QAction::triggered, this, &MyLabel::saveROIImage);
 
 	m_pOptMenu->addAction(m_pDelAction);
-	m_pOptMenu->addAction(m_pSaveAction);
+	// m_pOptMenu->addAction(m_pSaveAction);
 }
 
 /**

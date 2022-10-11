@@ -245,18 +245,18 @@ void MainWindow::addTrafficEvent(TrafficEvent* traffic) {
 }
 
 
- 
+/**
+ * @brief QWidgetTable item 事件点击槽函数
+ * 
+ * @param item 
+ */
 void MainWindow::consoleClick(QTableWidgetItem* item) {
     qDebug() << "dgv click: " << item->text() << ": " << item->row();
     // 根据 item->row() 获取当前事件的 num
-    int index = item->row();
-    trafficD->showTrafficImage(trafficList.at(index)->image);
+    int index = item->row();        // 获取事件的 index
+    trafficD->switchPage(0);        // 设置要显示的页面
+    trafficD->showImage(trafficList.at(index)->image);
     trafficD->show();
-    // std::cout << trafficList.at(index)->time.toStdString() << " " << trafficList.at(index)->level.toStdString() << std::endl;
-    // cv::Mat frame = trafficList.at(index)->image;
-    // std::cout << frame.rows << " " << frame.cols << std::endl;
-    // cv::imshow("frame", trafficList.at(index)->image);
-    // waitKey(0);
 }
 
 void MainWindow::showNoMasterMessage() {
@@ -382,8 +382,10 @@ void MainWindow::slot_park_event() {
 
 void MainWindow::slot_intrude_event() {
     qDebug() << "slot_intrude_event";
+    this->trafficD->switchPage(1);
+    this->trafficD->showImage(trafficList[0]->image);
+    this->trafficD->show();
 }
-
 
 
 void MainWindow::showConfigPanel() {

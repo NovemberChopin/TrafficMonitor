@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QStackedWidget>
 #include <QString>
 #include <QLabel>
 #include "qnode.hpp"
@@ -37,18 +38,27 @@ public:
     explicit TrafficDetail(QWidget *parent = 0);
     ~TrafficDetail();
 
-    void showTrafficImage(cv::Mat image);
+    void showImage(cv::Mat image);
 
-    void closePanal() {
-        this->close();
-    }
+    void closePanal();
+    void confirmROI();      // 确认选择的ROI槽函数
 
+    QWidget* init_showImage_page();   // 初始化显示事件图片布局
+    QWidget* init_configCamera_page();// 初始化配置相机布局
+    QWidget* init_getROI_page();      // 选择ROI页面
+
+    void switchPage(int index);         // 切换要显示的页面
+
+    void removeLayout(QWidget *wdialog, QLayout *layout);
 private:
     // Ui::TrafficDetail* ui;
-    MyLabel *label;
-    QWidget *centerWgt;
-    QPushButton *btn_close;
+    QLabel *label;          // 普通标签
+    MyLabel *roiLabel;      // 支持ROI选择的标签
 
+    QStackedWidget *stackWidget;
+    QWidget *showImagePage;
+    QWidget *getROIPage;
+    QWidget *configCameraPage;
 };
 
 
