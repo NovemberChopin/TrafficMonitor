@@ -63,6 +63,7 @@ public Q_SLOTS:
 	// 处理接收图片的信号槽
     void setImage(cv::Mat image, int cam_index);
 	
+	void showPopInfo();
 	void exit();
 	// QTableWidget 单元格点击事件 (展示事件详情)
 	void consoleClick(QTableWidgetItem* item);
@@ -106,6 +107,8 @@ private:
 	// 调整窗口相关成员变量
 	bool firstImage;
 	bool videoMax;							// 是否为单（最大化）窗口播放
+	int maxVideoIndex;						// 最大化显示的相机index
+	int layoutMargin;						// 中间播放视频Widget的Margin大小
 	int labelWidth, labelHeight;
 
 	// 左侧面板变量

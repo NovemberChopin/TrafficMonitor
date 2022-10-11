@@ -50,6 +50,10 @@ public:
     void switchPage(int index);         // 切换要显示的页面
 
     void removeLayout(QWidget *wdialog, QLayout *layout);
+
+Q_SIGNALS:
+    void getRoi(QRect roi, int cam_index);
+
 private:
     // Ui::TrafficDetail* ui;
     QLabel *label;          // 普通标签

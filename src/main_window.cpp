@@ -79,20 +79,24 @@ void MainWindow::initial() {
     QObject::connect(m_pLoadAction, &QAction::triggered, this, &MainWindow::menu_pop_load_config);
     QObject::connect(m_pSaveAction, &QAction::triggered, this, &MainWindow::menu_pop_save_config);
 
+    // 对相机画面右键弹出菜单
     connect(ui.camera, &QLabel::customContextMenuRequested, [=](const QPoint &pos) {
-        //参数pos用来传递右键点击时的鼠标的坐标，这个坐标一般是相对于控件左上角而言的
-        int center_x = ui.camera->geometry().width() / 2;
-        int center_y = ui.camera->geometry().height() / 2;
-        int x = pos.x(), y = pos.y();
-        
-        if (x < center_x && y < center_y) {
-            qDebug()<< pos << ": camera_0";
-        } else if (x > center_x && y < center_y) {
-            qDebug()<< pos << ": camera_1";
-        } else if (x < center_x && y > center_y) {
-            qDebug()<< pos << ": camera_2";
+        if (videoMax) {     // 当前处于最大化显示情况下，当前的相机index可以直接从maxVideoIndex获取
+            qDebug() << "maxVideoIndex: " << maxVideoIndex;
         } else {
-            qDebug()<< pos << ": camera_3";
+            //参数pos用来传递右键点击时的鼠标的坐标，这个坐标一般是相对于控件左上角而言的
+            int center_x = ui.camera->geometry().width() / 2;
+            int center_y = ui.camera->geometry().height() / 2;
+            int x = pos.x(), y = pos.y();
+            if (x < center_x && y < center_y) {
+                qDebug()<< pos << ": camera_0";
+            } else if (x > center_x && y < center_y) {
+                qDebug()<< pos << ": camera_1";
+            } else if (x < center_x && y > center_y) {
+                qDebug()<< pos << ": camera_2";
+            } else {
+                qDebug()<< pos << ": camera_3";
+            }
         }
         this->m_pOptMenu->exec(QCursor::pos());
     });
@@ -103,7 +107,9 @@ void MainWindow::initial() {
     labelHeight = ui.camera_0->height();
     std::cout << "init labelWidth: "<< labelWidth << " labelHeight: " << labelHeight << std::endl;
     std::cout << ui.camera->width() << " " << ui.camera->height() << std::endl;
-    videoMax=false;
+    videoMax=false;         // 是否有相机最大化播放的标志
+    maxVideoIndex = -1;     // -1 表示所有相机正产尺寸显示
+    layoutMargin = 9;       // 默认 Widget 的 Margin 为 9
     ui.camera_0->installEventFilter(this);
     ui.camera_1->installEventFilter(this);
     ui.camera_2->installEventFilter(this);
@@ -277,7 +283,20 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             ui.camera_1->setVisible(true);
             ui.camera_2->setVisible(true);
             ui.camera_3->setVisible(true);
+            this->maxVideoIndex = -1;
         } else {
+            // 根据widget坐标获取widget的index
+            int x = widget->geometry().x();
+            int y = widget->geometry().y();
+            if (x == layoutMargin && y == layoutMargin) {
+                this->maxVideoIndex = 0;    // camera_0
+            } else if (x > layoutMargin && y == layoutMargin) {
+                this->maxVideoIndex = 1;    // cmaera_1
+            } else if (x == layoutMargin && y > layoutMargin) {
+                this->maxVideoIndex = 2;    // cmaera_2
+            } else {
+                this->maxVideoIndex = 3;    // cmaera_3
+            }
             // 当前未正产状态，需要将其最大化
             labelWidth = widget->width() * 2;
             labelHeight = widget->height() * 2;
@@ -289,6 +308,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             widget->setVisible(true);
         }
         videoMax = !videoMax;
+        qDebug() << "videoMax: " << videoMax;
+        qDebug() << "maxVideoIndex: " << maxVideoIndex;
     }
     return QObject::eventFilter(obj, event);
 }
@@ -332,6 +353,8 @@ cv::Point3f MainWindow::cameraToWorld(cv::Point2f point, int cam_index) {
 
 void MainWindow::menu_pop_config() {
     qDebug() << "menu_pop_config";
+    trafficD->switchPage(2);    // 切换要显示的页面
+    trafficD->show();
 }
 
 void MainWindow::menu_pop_load_config() {
@@ -362,26 +385,50 @@ void MainWindow::slot_checkbox_change() {
 }
 
 
+void MainWindow::showPopInfo() {
+    QMessageBox::information(this, "注意", "请先选择相机画面并双击最大化！");
+}
+
 /// 左侧面板事件槽函数
 
 void MainWindow::slot_reverse_event() {
     qDebug() << "slot_reverse_event";
+    if (!videoMax) {
+        this->showPopInfo();
+        return;
+    }
 }
 
 void MainWindow::slot_block_event() {
     qDebug() << "slot_block_event";
+    if (!videoMax) {
+        this->showPopInfo();
+        return;
+    }
 }
 
 void MainWindow::slot_changeLine_event() {
     qDebug() << "slot_changeLine_event";
+    if (!videoMax) {
+        this->showPopInfo();
+        return;
+    }
 }
 
 void MainWindow::slot_park_event() {
     qDebug() << "slot_park_event";
+    if (!videoMax) {
+        this->showPopInfo();
+        return;
+    }
 }
 
 void MainWindow::slot_intrude_event() {
     qDebug() << "slot_intrude_event";
+    if (!videoMax) {
+        this->showPopInfo();
+        return;
+    }
     this->trafficD->switchPage(1);
     this->trafficD->showImage(trafficList[0]->image);
     this->trafficD->show();

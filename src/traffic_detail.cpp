@@ -23,9 +23,11 @@ TrafficDetail::TrafficDetail(QWidget *parent) : QMainWindow(parent) {
 
     this->showImagePage = this->init_showImage_page();
     this->getROIPage = this->init_getROI_page();
+    this->configCameraPage = this->init_configCamera_page();
     this->stackWidget = new QStackedWidget(this);
     this->stackWidget->addWidget(showImagePage);
     this->stackWidget->addWidget(getROIPage);
+    this->stackWidget->addWidget(configCameraPage);
     this->setCentralWidget(stackWidget);
 }
 
@@ -63,6 +65,8 @@ void TrafficDetail::switchPage(int index) {
 void TrafficDetail::confirmROI() {
     QRect roi = this->roiLabel->getRoiRect();
     qDebug() << roi;
+    // TODO 这里获取到ROI信息，然后将 roi 和 cam_index 发送回去
+    // 这里的 cam_index 应该是 MainWindow 发送过来的
     this->close();
 }
 
@@ -108,7 +112,14 @@ QWidget* TrafficDetail::init_getROI_page() {
 
 // 配置相机页面（计算相机姿态角）
 QWidget* TrafficDetail::init_configCamera_page() {
-
+    QWidget *configCamera_page = new QWidget(this);
+    QLabel *showLabel = new QLabel(this);
+    showLabel->setText("这是配置相机姿态角的页面！");
+    showLabel->setAlignment(Qt::AlignCenter);
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(showLabel);
+    configCamera_page->setLayout(layout);
+    return configCamera_page;
 }
 
 
