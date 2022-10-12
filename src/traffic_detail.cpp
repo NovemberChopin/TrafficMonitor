@@ -67,6 +67,7 @@ void TrafficDetail::confirmROI() {
     qDebug() << roi;
     // TODO 这里获取到ROI信息，然后将 roi 和 cam_index 发送回去
     // 这里的 cam_index 应该是 MainWindow 发送过来的
+    Q_EMIT this->getROI(roi, 0, 4);
     this->close();
 }
 

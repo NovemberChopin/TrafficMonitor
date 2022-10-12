@@ -48,7 +48,7 @@ public:
 
 	cv::Point3f cameraToWorld(cv::Point2f point, int cam_index);
 
-	cv::Point2f getPixelPoint(Rect &rect);		// 计算检测框的像素坐标
+	cv::Point2f getPixelPoint(Rect &rect, int type);		// 计算检测框的像素坐标
 
 	// void contextMenuEvent(QContextMenuEvent * ev);
 
@@ -62,6 +62,7 @@ public Q_SLOTS:
 
 	// 处理接收图片的信号槽
     void setImage(cv::Mat image, int cam_index);
+	void setROI(QRect roi, int cam_index, int event_index);
 	
 	void showPopInfo();
 	void exit();
@@ -98,7 +99,8 @@ private:
 	std::vector<cv::Point3f> vec_cameraCoord;		// 相机在世界坐标下的位置
 	cv::Size image_size;
 
-	int cam_num; 							// 相机数量		
+	int cam_num; 							// 相机数量	
+	int event_num;							// 事件数量	
 	int interval;							// 目标检测间隔
 	bool needSave = true;					// 临时成员变量
 
@@ -111,9 +113,12 @@ private:
 	int layoutMargin;						// 中间播放视频Widget的Margin大小
 	int labelWidth, labelHeight;
 
-	// 左侧面板变量
+	// 左侧面板事件相关变量
+	std::vector<cv::Mat> cur_frame;
 	bool needDetectPerson;					// 是否检测行人
 	bool needDetectCar;						// 是否检测车辆
+	// camera_num x event_num
+	std::vector<std::vector<cv::Rect> > vec_roi;
 
 	// 右键弹窗变量
 	QMenu *m_pOptMenu;

@@ -32,8 +32,20 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 
     hasLoadCameraMatrix = false;        // 当前未加载相加参数
     image_size = cv::Size(1280, 720);
-    cam_num = 2;        // 临时设置相机数量
+    cam_num = 4;        // 临时设置相机数量
+    event_num = 5;
     interval = 5;       // 物体检测间隔
+
+    std::vector<Rect> temp;
+    cv::Mat fill_img = cv::imread("./test.png");
+    for (int i=0; i < cam_num; i++) {       // 初始化 ROI
+        cur_frame.push_back(fill_img);
+        temp.clear();
+        for (int j=0; j < event_num; j++) {
+            temp.push_back(cv::Rect(0, 0, 0, 0));
+        }
+        vec_roi.push_back(temp);
+    }
     
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config_ros, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
@@ -44,8 +56,8 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
     
     //接收登录页面传来的数据
-    connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), this, SLOT(connectByConfig(ConfigInfo*)));
-
+    QObject::connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), this, SLOT(connectByConfig(ConfigInfo*)));
+    QObject::connect(trafficD, SIGNAL(getROI(QRect, int, int)), this, SLOT(setROI(QRect, int, int)));
     // 初始化
     initial();
 }
@@ -429,8 +441,9 @@ void MainWindow::slot_intrude_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img = this->cur_frame[this->maxVideoIndex];
     this->trafficD->switchPage(1);
-    this->trafficD->showImage(trafficList[0]->image);
+    this->trafficD->showImage(img);
     this->trafficD->show();
 }
 
@@ -454,6 +467,16 @@ void MainWindow::connectByConfig(ConfigInfo *config) {
 }
 
 
+void MainWindow::setROI(QRect roi, int cam_index, int event_index) {
+    vec_roi[cam_index][event_index].x = roi.x();
+    vec_roi[cam_index][event_index].y = roi.y();
+    vec_roi[cam_index][event_index].width = roi.width();
+    vec_roi[cam_index][event_index].height = roi.height();
+
+    std::cout << "vec_roi[0][4]: " << vec_roi[cam_index][event_index] << std::endl;
+}
+
+
 void MainWindow::setImage(cv::Mat image, int cam_index)
 {   
     cv::Mat imageCalib;     // 畸变修复后的图像
@@ -468,19 +491,40 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     if (this->needDetectPerson || this->needDetectCar) {
         processOD(imageCalib, interval, cam_index);
     }
-    
+
+    imageCalib.copyTo(this->cur_frame[cam_index]);
+
+    // 检测弱势交通参与者闯入事件
+    if (vec_roi[cam_index][4].width != 0) {
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {
+            if (detec_info->track_classIds[i] == 0) {     // 如果物体id为 0: person
+                // 计算检测框的质心
+                int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height / 2;
+                cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                if (vec_roi[cam_index][4].contains(c_point)) {
+                    int left = vec_roi[cam_index][4].x;
+                    int top = vec_roi[cam_index][4].y;
+                    int right = vec_roi[cam_index][4].x + vec_roi[cam_index][4].width;
+                    int bottom = vec_roi[cam_index][4].y + vec_roi[cam_index][4].height;
+                    cv::rectangle(cur_frame, Point(left, top), Point(right, bottom), Scalar(50, 178, 255), 2);
+                    QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+                    QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+                    TrafficEvent* traffic = new TrafficEvent(time_str, "弱势闯入", "高", "正确", cur_frame[cam_index]);
+                    trafficList.push_back(traffic);
+                    this->addTrafficEvent(traffic);             // 添加进事件展示列表
+                    break;
+                }
+            }
+        }
+    }
 
     // 保存接收到的第一帧图片（测试用）
-    if (needSave) {
-        cv::imwrite("./test.png", imageCalib);
-        needSave = !needSave;
-        // 添加事件列表的样例
-        QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
-        QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
-        TrafficEvent* traffic = new TrafficEvent(time_str, "Person", "高", "正确", imageCalib);
-        trafficList.push_back(traffic);
-        this->addTrafficEvent(traffic);             // 添加进事件展示列表
-    }
+    // if (needSave) {
+    //     cv::imwrite("./test.png", imageCalib);
+    //     needSave = !needSave;
+    // }
     
     // qimage_mutex_.lock();
     cv::Mat showImg = imageCalib;
@@ -554,8 +598,9 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
     } else {
         // 只有前后两帧 bboxes 长度一样时
         for (int i=0; i<detec_info->track_boxes.size(); i++) {
-            cv::Point2f pre = getPixelPoint(detec_info->track_boxes_pre[i]);
-            cv::Point2f cur = getPixelPoint(detec_info->track_boxes[i]);
+            // 这里 type=1 表示返回底部中心坐标
+            cv::Point2f pre = getPixelPoint(detec_info->track_boxes_pre[i], 1);
+            cv::Point2f cur = getPixelPoint(detec_info->track_boxes[i], 1);
 
             // 计算真实世界坐标
             cv::Point3f wd_pre = cameraToWorld(pre, cam_index);
@@ -598,14 +643,17 @@ void MainWindow::exit() {
  * @brief 返回物体像素坐标
  * 
  * @param rect 
+ * @param type 返回质心:0或底部中心:1
  * @return cv::Point2f 
  */
-cv::Point2f MainWindow::getPixelPoint(Rect &rect) {
+cv::Point2f MainWindow::getPixelPoint(Rect &rect, int type) {
     int x = rect.x;
     int y = rect.y;
     int width = rect.width;
     int height = rect.height;
-    // return cv::Point2f(x+width/2, y+height/2);   // 质心坐标
+    if (type == 0) {
+        return cv::Point2f(x+width/2, y+height/2);   // 质心坐标
+    }
     return cv::Point2f(x+width/2, y+height);        // 底部中心坐标
 }
 

@@ -52,7 +52,7 @@ public:
     void removeLayout(QWidget *wdialog, QLayout *layout);
 
 Q_SIGNALS:
-    void getRoi(QRect roi, int cam_index);
+    void getROI(QRect roi, int cam_index, int event_index);
 
 private:
     // Ui::TrafficDetail* ui;
