@@ -28,6 +28,9 @@ struct DetectionInfo
 	vector<Rect> track_boxes;			// 当前帧检测到物体的边框位置
 	vector<int> track_classIds;			// 当前帧检测物体的类别
 	vector<float> track_confidences;	// 当前帧检测物体的置信度
+	vector<float> track_speeds;
+	vector<float> track_distances;
+	vector<int> leftOrRight; // 开始检测异常变道事件时物体的位置在线左（0）或线右
 	DetectionInfo(int index) : index(index) {}
 };
 
@@ -66,9 +69,9 @@ public:
     ~ObjectDetection();
 
 	// 物体检测相关函数
-    void runODModel(cv::Mat& frame, int cam_index);
+    void runODModel(cv::Mat& frame, int cam_index, bool person, bool car);
 	vector<String> getOutputsNames(const Net& net);
-	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index);
+	void postprocess(Mat& frame, const vector<Mat>& outs, int cam_index, bool person, bool car);
 	void drawPred(int classId, float conf, float speed, float dist, 
 					int left, int top, int right, int bottom, Mat& frame, bool person, bool car);
 	// 物体跟踪相关函数

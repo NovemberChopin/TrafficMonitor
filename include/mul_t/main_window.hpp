@@ -48,7 +48,9 @@ public:
 
 	cv::Point3f cameraToWorld(cv::Point2f point, int cam_index);
 
-	cv::Point2f getPixelPoint(Rect &rect);		// 计算检测框的像素坐标
+	cv::Point2f getPixelPoint(Rect &rect, int type);		// 计算检测框的像素坐标
+
+	int leftOrRight(double k, double b, cv::Point2i p);   // 在线左返回0，线右返回1
 
 	// void contextMenuEvent(QContextMenuEvent * ev);
 
@@ -62,6 +64,8 @@ public Q_SLOTS:
 
 	// 处理接收图片的信号槽
     void setImage(cv::Mat image, int cam_index);
+	void setROI(QRect roi, int cam_index, int event_index);
+	void setLine(double k, double b, int cam_index, int event_index);
 	
 	void showPopInfo();
 	void exit();
@@ -90,6 +94,7 @@ private:
 	ObjectDetection *objectD;	// 检测（跟踪）算法对象
 
 	// 相机参数
+	vector<bool> vec_hasLoadCameraMatrix;
 	bool hasLoadCameraMatrix;						// 是否加载了相机相关参数
 	std::vector<cv::Mat> vec_cameraMatrix;			// 相机内参矩阵
 	std::vector<cv::Mat> vec_distCoeffs;			// 相机畸变参数
@@ -98,7 +103,8 @@ private:
 	std::vector<cv::Point3f> vec_cameraCoord;		// 相机在世界坐标下的位置
 	cv::Size image_size;
 
-	int cam_num; 							// 相机数量		
+	int cam_num; 							// 相机数量	
+	int event_num;							// 事件数量	
 	int interval;							// 目标检测间隔
 	bool needSave = true;					// 临时成员变量
 
@@ -111,15 +117,23 @@ private:
 	int layoutMargin;						// 中间播放视频Widget的Margin大小
 	int labelWidth, labelHeight;
 
-	// 左侧面板变量
+	// 左侧面板事件相关变量
+	cv::Mat cur_frame0;
+	cv::Mat cur_frame1;
+	cv::Mat cur_frame2;
+	cv::Mat cur_frame3;                           // 分别对应四个相机的当前帧
 	bool needDetectPerson;					// 是否检测行人
 	bool needDetectCar;						// 是否检测车辆
+	// camera_num x event_num
+	std::vector<std::vector<cv::Rect> > vec_roi;
+	std::vector<std::vector<std::vector<double>>> vec_line;
 
 	// 右键弹窗变量
 	QMenu *m_pOptMenu;
 	QAction *m_pConfigAction;
 	QAction *m_pLoadAction;
 	QAction *m_pSaveAction;
+	int m_p_camera_index;		// 右键弹出菜单所在相机index
 };
 
 }  // namespace mul_t

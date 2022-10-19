@@ -47,6 +47,7 @@ public:
 	~MyLabel();
 	QRect getRoiRect() const;               //获取已经圈选的框 外部调用
 	void setBackImage(const QImage &img);   //设置背景图片  外部调用
+	void setFirst(bool ifFirst);
 
 protected:
 	void paintEvent(QPaintEvent *event);
@@ -68,12 +69,14 @@ private:
 	bool m_bPainterPressed;        //是否正在绘制
 	bool m_bMovedPressed;          //是否正在拖动
 	bool m_bScalePressed;          //是否正在缩放大小
+	bool firstImage = true;               // 设置参数表示是否需要设置新背景图
 	QPoint m_paintStartPoint;      //绘制的初始位置
 	QPoint m_moveStartPoint;       //拖动的初始位置
 	QRect m_roiRect;               //绘制的ROI
 	EmDirection m_emCurDir;        //拖动的方向
 
 	QImage m_backImage;            //背景图
+	QPixmap rawImg;                       // 真正画的图
 
 	QMenu *m_pOptMenu;
 	QAction *m_pDelAction;

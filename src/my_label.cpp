@@ -93,8 +93,10 @@ void MyLabel::paintEvent(QPaintEvent * event)
 
 	if (m_backImage.isNull())
 		return;
-
-	QPixmap rawImg = QPixmap::fromImage(m_backImage);
+	if(firstImage){
+		rawImg = QPixmap::fromImage(m_backImage);
+		firstImage = false;
+	}
 	QString strPoint = QString("X:%0, Y:%1").arg(m_roiRect.x()).arg(m_roiRect.y());           //位置信息
 	QString strSize = QString("W:%0, H:%1").arg(m_roiRect.width()).arg(m_roiRect.height());   //大小信息
 
@@ -114,7 +116,6 @@ void MyLabel::paintEvent(QPaintEvent * event)
 	// painter.drawText(m_roiRect.topLeft().x(), m_roiRect.topLeft().y() - 5, strSize);
 	// painter.drawText(m_roiRect.topLeft().x(), m_roiRect.topLeft().y() - 18, strPoint);
 	painter.drawRect(m_roiRect);
-
 	if (m_roiRect.width() != 0 && m_roiRect.height() != 0)
 	{
 #ifdef DRAW_SUB_LINE
@@ -498,4 +499,8 @@ void MyLabel::moveRect(const QPoint & mousePoint)
 	ret.setSize(m_roiRect.size());
 	m_roiRect = ret;
 	m_moveStartPoint = mousePoint;
+}
+
+void MyLabel::setFirst(bool ifFirst){
+	this->firstImage = ifFirst;
 }

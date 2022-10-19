@@ -76,7 +76,7 @@ void ObjectDetection::runTrackerModel(cv::Mat& frame) {
  * @param frame 
  * @param cam_index 当前相机的 index
  */
-void ObjectDetection::runODModel(cv::Mat& frame, int cam_index) {
+void ObjectDetection::runODModel(cv::Mat& frame, int cam_index, bool person, bool car) {
 	cv::Mat blob;
 	// Create a 4D blob from a frame.
     blobFromImage(frame, blob, 1/255.0, cv::Size(inpWidth, inpHeight), Scalar(0,0,0), true, false);
@@ -87,7 +87,7 @@ void ObjectDetection::runODModel(cv::Mat& frame, int cam_index) {
 	std::vector<cv::Mat> outs;
 	net.forward(outs, getOutputsNames(net));
 	// Remove the bounding boxes with low confidence
-    postprocess(frame, outs, cam_index);
+    postprocess(frame, outs, cam_index, person, car);
     // std::cout << "forward time: " << double(mid-start)/CLOCKS_PER_SEC << " after time: " << double(end-mid)/CLOCKS_PER_SEC << std::endl;
 	// Put efficiency information. 
     // The function getPerfProfile returns the overall time for inference(t) 
@@ -124,7 +124,7 @@ void ObjectDetection::runODModel(cv::Mat& frame, int cam_index) {
  * @param outs network output
  * @param cam_index the index of the camera
  */
-void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_index)
+void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_index, bool person, bool car)
 {
     vector<int> classIds;
     vector<float> confidences;
@@ -168,7 +168,7 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
     {
         int idx = indices[i];
         Rect box = boxes[idx];
-        if(classIds[idx] < 7) {     // 只保存检测到的行人和车辆（class见resources/coco.names）
+        if(classIds[idx] == 0 && person) {     // 只保存检测到的行人和车辆（class见resources/coco.names）
             detecRes.at(cam_index)->track_boxes.push_back(boxes[idx]);
             detecRes.at(cam_index)->track_classIds.push_back(classIds[idx]);
             detecRes.at(cam_index)->track_confidences.push_back(confidences[idx]);
@@ -178,6 +178,11 @@ void ObjectDetection::postprocess(Mat& frame, const vector<Mat>& outs, int cam_i
             // 此时仅仅执行目标检测，在main_window文件中添加框
             // drawPred(classIds[idx], confidences[idx], box.x, box.y,
             //         box.x + box.width, box.y + box.height, frame);
+        }
+        if(classIds[idx] > 0 && classIds[idx] < 7 && car) {     // 只保存检测到的行人和车辆（class见resources/coco.names）
+            detecRes.at(cam_index)->track_boxes.push_back(boxes[idx]);
+            detecRes.at(cam_index)->track_classIds.push_back(classIds[idx]);
+            detecRes.at(cam_index)->track_confidences.push_back(confidences[idx]);
         }
     }
 }
@@ -201,7 +206,7 @@ void ObjectDetection::drawPred(int classId, float conf, float speed, float dist,
     {
         CV_Assert(classId < (int)classes.size());
         if(classId > 0 && classId < 7) classId = 1;     // 把检测到的各种车辆都显示为 car
-        label = classes[classId] + ":" + label + " " + speed_label + " " + dist_label;
+        label = classes[classId] + ":" + speed_label + " " + dist_label;
         // label = classes[classId];
     }
     

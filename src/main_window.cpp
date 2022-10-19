@@ -33,7 +33,39 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     hasLoadCameraMatrix = false;        // 当前未加载相加参数
     image_size = cv::Size(1280, 720);
     cam_num = 2;        // 临时设置相机数量
+    event_num = 5;
     interval = 5;       // 物体检测间隔
+
+    std::vector<Rect> temp;
+    std::vector<std::vector<double>> temp_p;
+    std::vector<double> temp_pp;
+    temp_pp.push_back(0.0);
+    temp_pp.push_back(0.0);
+    temp_p.push_back(temp_pp);
+    temp_p.push_back(temp_pp);
+    cur_frame0 = cv::imread("./test.png");
+    cur_frame1 = cv::imread("./test.png");
+    cur_frame2 = cv::imread("./test.png");
+    cur_frame3 = cv::imread("./test.png");
+
+    Mat m(3, 5, CV_32FC1, Scalar(1));
+    for (int i=0; i < cam_num; i++) {       // 初始化 ROI
+        // cur_frame.push_back(fill_img);
+        this->vec_hasLoadCameraMatrix.push_back(false);
+        this->vec_cameraMatrix.push_back(m);
+        this->vec_distCoeffs.push_back(m);
+        this->vec_rotationMatrix.push_back(m);
+        this->vec_transVector.push_back(m);
+        this->vec_map1.push_back(m);
+        this->vec_map2.push_back(m);
+        this->vec_cameraCoord.push_back(cv::Point3f(0.12, -2.9, 0));  
+        temp.clear();
+        for (int j=0; j < event_num; j++) {
+            temp.push_back(cv::Rect(0, 0, 0, 0));
+        }
+        vec_roi.push_back(temp);
+        vec_line.push_back(temp_p);
+    }
     
     // QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
     QObject::connect(ui.btn_config_ros, &QPushButton::clicked, this, &MainWindow::showConfigPanel);
@@ -44,8 +76,9 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
     
     //接收登录页面传来的数据
-    connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), this, SLOT(connectByConfig(ConfigInfo*)));
-
+    QObject::connect(configP, SIGNAL(getConfigInfo(ConfigInfo*)), this, SLOT(connectByConfig(ConfigInfo*)));
+    QObject::connect(trafficD, SIGNAL(getROI(QRect, int, int)), this, SLOT(setROI(QRect, int, int)));
+    QObject::connect(trafficD, SIGNAL(getLine(double, double, int, int)), this, SLOT(setLine(double, double, int, int)));
     // 初始化
     initial();
 }
@@ -80,6 +113,7 @@ void MainWindow::initial() {
     QObject::connect(m_pSaveAction, &QAction::triggered, this, &MainWindow::menu_pop_save_config);
 
     // 对相机画面右键弹出菜单
+    m_p_camera_index = 0;
     connect(ui.camera, &QLabel::customContextMenuRequested, [=](const QPoint &pos) {
         if (videoMax) {     // 当前处于最大化显示情况下，当前的相机index可以直接从maxVideoIndex获取
             qDebug() << "maxVideoIndex: " << maxVideoIndex;
@@ -90,12 +124,16 @@ void MainWindow::initial() {
             int x = pos.x(), y = pos.y();
             if (x < center_x && y < center_y) {
                 qDebug()<< pos << ": camera_0";
+                m_p_camera_index = 0;
             } else if (x > center_x && y < center_y) {
                 qDebug()<< pos << ": camera_1";
+                m_p_camera_index = 1;
             } else if (x < center_x && y > center_y) {
                 qDebug()<< pos << ": camera_2";
+                m_p_camera_index = 2;
             } else {
                 qDebug()<< pos << ": camera_3";
+                m_p_camera_index = 3;
             }
         }
         this->m_pOptMenu->exec(QCursor::pos());
@@ -353,12 +391,41 @@ cv::Point3f MainWindow::cameraToWorld(cv::Point2f point, int cam_index) {
 
 void MainWindow::menu_pop_config() {
     qDebug() << "menu_pop_config";
-    trafficD->switchPage(2);    // 切换要显示的页面
+    trafficD->switchPage(3);    // 切换要显示的页面
     trafficD->show();
 }
 
 void MainWindow::menu_pop_load_config() {
     qDebug() << "menu_pop_load_config";
+    QString filename = QFileDialog::getOpenFileName(this, "Open", "./", "(*.yml)");
+    if (filename.isEmpty()) 
+        return;
+
+    cv::Mat cameraMatrix, distCoeffs;
+    cv::Mat rotationVector, rotationMatrix, transVector;
+    cv::Mat map1, map2;
+    std::vector<cv::Point2f> image_points;
+    std::vector<cv::Point3f> world_points;
+
+    cv::FileStorage cameraPameras(filename.toStdString(), cv::FileStorage::READ);
+    cameraPameras["camera_matrix"] >> cameraMatrix;
+    cameraPameras["dist_coeffs"] >> distCoeffs;
+    this->vec_cameraMatrix[m_p_camera_index] = cameraMatrix;
+    this->vec_distCoeffs[m_p_camera_index] = distCoeffs;
+    // 计算相机姿态
+    cameraPameras["imagepoints"] >> image_points;
+    cameraPameras["worldpoints"] >> world_points;
+    solvePnP(world_points, image_points, cameraMatrix, distCoeffs, rotationVector, transVector);
+    Rodrigues(rotationVector, rotationMatrix);
+    this->vec_rotationMatrix[m_p_camera_index] = rotationMatrix;
+    this->vec_transVector[m_p_camera_index] = transVector;
+    // 计算修复畸变的映射矩阵
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(), cameraMatrix, image_size, CV_16SC2, map1, map2);
+    this->vec_map1[m_p_camera_index] = map1;
+    this->vec_map2[m_p_camera_index] = map2;
+
+    this->vec_cameraCoord[m_p_camera_index] = cv::Point3f(0.12, -2.9, 0);
+    this->vec_hasLoadCameraMatrix[m_p_camera_index] = true;
 }
 
 void MainWindow::menu_pop_save_config() {
@@ -397,6 +464,22 @@ void MainWindow::slot_reverse_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img;
+    switch (maxVideoIndex) {
+        case 0: img = cur_frame0;
+            break;
+        case 1: img = cur_frame1;
+            break;
+        case 2: img = cur_frame2;
+            break;
+        default: img = cur_frame3;
+            break;
+    }
+    this->trafficD->setIndexParam(this->maxVideoIndex, 0);
+    this->trafficD->switchPage(2);
+    this->trafficD->showImage(img);
+    this->trafficD->show();
+    this->trafficD->showPopInfo(0);
 }
 
 void MainWindow::slot_block_event() {
@@ -405,6 +488,22 @@ void MainWindow::slot_block_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img;
+    switch (maxVideoIndex) {
+        case 0: img = cur_frame0;
+            break;
+        case 1: img = cur_frame1;
+            break;
+        case 2: img = cur_frame2;
+            break;
+        default: img = cur_frame3;
+            break;
+    }
+    this->trafficD->setIndexParam(this->maxVideoIndex, 1);
+    this->trafficD->switchPage(1);
+    this->trafficD->showImage(img);
+    this->trafficD->show();
+    this->trafficD->showPopInfo(1);
 }
 
 void MainWindow::slot_changeLine_event() {
@@ -413,6 +512,22 @@ void MainWindow::slot_changeLine_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img;
+    switch (maxVideoIndex) {
+        case 0: img = cur_frame0;
+            break;
+        case 1: img = cur_frame1;
+            break;
+        case 2: img = cur_frame2;
+            break;
+        default: img = cur_frame3;
+            break;
+    }
+    this->trafficD->setIndexParam(this->maxVideoIndex, 1);
+    this->trafficD->switchPage(2);
+    this->trafficD->showImage(img);
+    this->trafficD->show();
+    this->trafficD->showPopInfo(0);
 }
 
 void MainWindow::slot_park_event() {
@@ -421,6 +536,22 @@ void MainWindow::slot_park_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img;
+    switch (maxVideoIndex) {
+        case 0: img = cur_frame0;
+            break;
+        case 1: img = cur_frame1;
+            break;
+        case 2: img = cur_frame2;
+            break;
+        default: img = cur_frame3;
+            break;
+    }
+    this->trafficD->setIndexParam(this->maxVideoIndex, 3);
+    this->trafficD->switchPage(1);
+    this->trafficD->showImage(img);
+    this->trafficD->show();
+    this->trafficD->showPopInfo(1);
 }
 
 void MainWindow::slot_intrude_event() {
@@ -429,9 +560,22 @@ void MainWindow::slot_intrude_event() {
         this->showPopInfo();
         return;
     }
+    cv::Mat img;
+    switch (maxVideoIndex) {
+        case 0: img = cur_frame0;
+            break;
+        case 1: img = cur_frame1;
+            break;
+        case 2: img = cur_frame2;
+            break;
+        default: img = cur_frame3;
+            break;
+    }
+    this->trafficD->setIndexParam(this->maxVideoIndex, 4);
     this->trafficD->switchPage(1);
-    this->trafficD->showImage(trafficList[0]->image);
+    this->trafficD->showImage(img);
     this->trafficD->show();
+    this->trafficD->showPopInfo(1);
 }
 
 
@@ -454,10 +598,28 @@ void MainWindow::connectByConfig(ConfigInfo *config) {
 }
 
 
+void MainWindow::setROI(QRect roi, int cam_index, int event_index) {
+    vec_roi[cam_index][event_index].x = roi.x();
+    vec_roi[cam_index][event_index].y = roi.y();
+    vec_roi[cam_index][event_index].width = roi.width();
+    vec_roi[cam_index][event_index].height = roi.height();
+
+    // std::cout << "vec_roi[0][4]: " << vec_roi[cam_index][event_index] << std::endl;
+}
+
+
+void MainWindow::setLine(double k, double b, int cam_index, int event_index) {
+    vec_line[cam_index][event_index][0] = k;
+    vec_line[cam_index][event_index][1] = b;
+    std::cout << "vec_line[0][1]: " << vec_line[cam_index][event_index][0]
+    <<" "<<vec_line[cam_index][event_index][1]<< std::endl;
+}
+
+
 void MainWindow::setImage(cv::Mat image, int cam_index)
 {   
     cv::Mat imageCalib;     // 畸变修复后的图像
-    if (hasLoadCameraMatrix) {      // 如果已经加载了相机参数，则修复畸变
+    if (this->vec_hasLoadCameraMatrix[cam_index]) {      // 如果已经加载了相机参数，则修复畸变
         // cv::remap(image, imageCalib, map1, map2, INTER_LINEAR);
         cv::remap(image, imageCalib, this->vec_map1[cam_index], this->vec_map2[cam_index], INTER_LINEAR);
     } else {
@@ -468,19 +630,226 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     if (this->needDetectPerson || this->needDetectCar) {
         processOD(imageCalib, interval, cam_index);
     }
+    else{
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        detec_info->track_boxes.clear();
+        detec_info->track_classIds.clear();
+        detec_info->track_confidences.clear();
+        detec_info->track_speeds.clear();
+        detec_info->track_distances.clear();
+    }
+
+    cv::Mat cur_frame;
+    switch (cam_index) {
+        case 0: 
+            imageCalib.copyTo(this->cur_frame0);
+            cur_frame = cur_frame0;
+            break;
+        case 1: 
+            imageCalib.copyTo(this->cur_frame1);
+            cur_frame = cur_frame1;
+            break;
+        case 2: 
+            imageCalib.copyTo(this->cur_frame2);
+            cur_frame = cur_frame2;
+            break;
+        default: 
+            imageCalib.copyTo(this->cur_frame3);
+            cur_frame = cur_frame3;
+            break;
+    }
+    // imageCalib.copyTo(this->cur_frame[cam_index]);
     
+    // 检测交通逆行事件
+    if(vec_line[cam_index][0][1] != 0) {
+        double k = vec_line[cam_index][0][0];
+        double b = vec_line[cam_index][0][1];
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {  
+            int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+            int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height;
+            cv::Point2i c_point = cv::Point2i(c_x, c_y);
+            int nowPosition = this->leftOrRight(k, b, c_point);
+            if((nowPosition == 0 && detec_info->track_speeds[i] < 0)||
+                (nowPosition == 1 && detec_info->track_speeds[i] > 0)){ 
+                double x = (-700-b)/k;
+                cv::Point2i p1(x, 700);
+                std::cout<<"p1: "<<p1.x<<" "<<p1.y<<std::endl;
+                double y = k * 1300.0 + b;
+                cv::Point2i p2(1300, -(int)y);
+                std::cout<<"p2: "<<p2.x<<" "<<p2.y<<std::endl;
+                cv::line(cur_frame, p1, p2, Scalar(50, 178, 255), 3);
+                QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+                QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+                cv::Mat tmpImg ;
+                cur_frame.copyTo(tmpImg);
+                TrafficEvent* traffic = new TrafficEvent(time_str, "交通逆行", "高", "正确", tmpImg);
+                trafficList.push_back(traffic);
+                this->addTrafficEvent(traffic);             // 添加进事件展示列表
+                vec_line[cam_index][0][1] = 0;
+                break;
+            }    
+        }             
+    }
+
+    // 检测交通拥堵事件
+    if (vec_roi[cam_index][1].width != 0) {
+        // std::cout << "rect: " << vec_roi[cam_index][3] << std::endl;
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        int carInRoi_num = 0;
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {
+             // 如果物体id大于0 : car. 且速度小于10
+            if (detec_info->track_classIds[i] > 0 &&
+             detec_info->track_speeds[i] < 10 && detec_info->track_speeds[i] > -10) { 
+                // 计算检测框的质心
+                int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height / 2;
+                cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                if (vec_roi[cam_index][1].contains(c_point)) {
+                    carInRoi_num += 1;
+                }
+            }
+        }
+        int width = vec_roi[cam_index][1].width;     // ROI 宽
+        int height = vec_roi[cam_index][1].height;   // ROI 高
+        int square = width * height;                 // ROI 面积
+        int threshold = square/15000;                // 车辆数量阈值
+        if (carInRoi_num > threshold){              // 若ROI区域内车辆数量大于等于阈值
+            // std::cout << "square: " << square << std::endl;
+            // std::cout << "threshold: " << threshold << std::endl;
+            int left = vec_roi[cam_index][1].x;
+            int top = vec_roi[cam_index][1].y;
+            int right = left + width;
+            int bottom = top + height;
+            cv::rectangle(cur_frame, Point(left, top), Point(right, bottom), Scalar(50, 178, 255), 2);
+            QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+            QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+            cv::Mat tmpImg ;
+            cur_frame.copyTo(tmpImg);
+            TrafficEvent* traffic = new TrafficEvent(time_str, "交通拥堵", "高", "正确", tmpImg);
+            trafficList.push_back(traffic);
+            this->addTrafficEvent(traffic);             // 添加进事件展示列表
+            vec_roi[cam_index][1].width = 0;
+        }
+    }
+
+
+    // 检测异常变道事件
+    if(vec_line[cam_index][1][1] != 0) {
+        double k = vec_line[cam_index][1][0];
+        double b = vec_line[cam_index][1][1];
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        if(detec_info->leftOrRight.empty()){
+            for (int i=0; i < detec_info->track_classIds.size(); i++) {
+                // 计算检测框的底部中心
+                int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height;
+                cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                detec_info->leftOrRight.push_back(this->leftOrRight(k, b, c_point));
+            }
+        }
+        else{
+            for (int i=0; i < detec_info->track_classIds.size(); i++) {          
+                // for (auto j : detec_info->leftOrRight)
+                //     std::cout << j << ' ';
+                // std::cout<<std::endl;
+                // 如果物体id为1 : car
+                if (detec_info->track_classIds[i] >= 0) { 
+                    int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                    int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height;
+                    cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                    int nowPosition = this->leftOrRight(k, b, c_point);
+                    // std::cout<<"old: "<<detec_info->leftOrRight[i]<<"; new: "<<nowPosition<<std::endl;
+                    if(detec_info->leftOrRight[i]^nowPosition == 1){ // 前后不同
+                        double x = (-700-b)/k;
+                        cv::Point2i p1(x, 700);
+                        std::cout<<"p1: "<<p1.x<<" "<<p1.y<<std::endl;
+                        double y = k * 1300.0 + b;
+                        cv::Point2i p2(1300, -(int)y);
+                        std::cout<<"p2: "<<p2.x<<" "<<p2.y<<std::endl;
+                        cv::line(cur_frame, p1, p2, Scalar(50, 178, 255), 3);
+                        QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+                        QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+                        cv::Mat tmpImg ;
+                        cur_frame.copyTo(tmpImg);
+                        TrafficEvent* traffic = new TrafficEvent(time_str, "异常变道", "高", "正确", tmpImg);
+                        trafficList.push_back(traffic);
+                        this->addTrafficEvent(traffic);             // 添加进事件展示列表
+                        vec_line[cam_index][1][1] = 0;
+                        detec_info->leftOrRight.clear();
+                        break;
+                    }
+                }
+            }
+        }        
+    }
+
+
+    // 检测异常停车事件
+    if (vec_roi[cam_index][3].width != 0) {
+        // std::cout << "rect: " << vec_roi[cam_index][3] << std::endl;
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {
+             // 如果物体id为1 : car 且速度为0
+            if (detec_info->track_classIds[i] > 0 && detec_info->track_speeds[i] == 0) { 
+                // 计算检测框的质心
+                int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height / 2;
+                cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                if (vec_roi[cam_index][3].contains(c_point)) {
+                    int left = vec_roi[cam_index][3].x;
+                    int top = vec_roi[cam_index][3].y;
+                    int right = vec_roi[cam_index][3].x + vec_roi[cam_index][3].width;
+                    int bottom = vec_roi[cam_index][3].y + vec_roi[cam_index][3].height;
+                    cv::rectangle(cur_frame, Point(left, top), Point(right, bottom), Scalar(50, 178, 255), 2);
+                    QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+                    QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+                    cv::Mat tmpImg ;
+                    cur_frame.copyTo(tmpImg);
+                    TrafficEvent* traffic = new TrafficEvent(time_str, "异常停车", "高", "正确", tmpImg);
+                    trafficList.push_back(traffic);
+                    this->addTrafficEvent(traffic);             // 添加进事件展示列表
+                    vec_roi[cam_index][3].width = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 检测弱势交通参与者闯入事件
+    if (vec_roi[cam_index][4].width != 0) {
+        DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {
+            if (detec_info->track_classIds[i] == 0) {     // 如果物体id为 0: person
+                // 计算检测框的质心
+                int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
+                int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height / 2;
+                cv::Point2i c_point = cv::Point2i(c_x, c_y);
+                if (vec_roi[cam_index][4].contains(c_point)) {
+                    int left = vec_roi[cam_index][4].x;
+                    int top = vec_roi[cam_index][4].y;
+                    int right = vec_roi[cam_index][4].x + vec_roi[cam_index][4].width;
+                    int bottom = vec_roi[cam_index][4].y + vec_roi[cam_index][4].height;
+                    cv::rectangle(cur_frame, Point(left, top), Point(right, bottom), Scalar(50, 178, 255), 2);
+                    QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
+                    QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
+                    cv::Mat tmpImg ;
+                    cur_frame.copyTo(tmpImg);
+                    TrafficEvent* traffic = new TrafficEvent(time_str, "弱势闯入", "高", "正确", tmpImg);
+                    trafficList.push_back(traffic);
+                    this->addTrafficEvent(traffic);             // 添加进事件展示列表
+                    vec_roi[cam_index][4].width = 0;
+                    break;
+                }
+            }
+        }
+    }
 
     // 保存接收到的第一帧图片（测试用）
-    if (needSave) {
-        cv::imwrite("./test.png", imageCalib);
-        needSave = !needSave;
-        // 添加事件列表的样例
-        QDateTime time = QDateTime::currentDateTime();  // 获取系统现在的时间
-        QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
-        TrafficEvent* traffic = new TrafficEvent(time_str, "Person", "高", "正确", imageCalib);
-        trafficList.push_back(traffic);
-        this->addTrafficEvent(traffic);             // 添加进事件展示列表
-    }
+    // if (needSave) {
+    //     cv::imwrite("./test.png", imageCalib);
+    //     needSave = !needSave;
+    // }
     
     // qimage_mutex_.lock();
     cv::Mat showImg = imageCalib;
@@ -536,26 +905,29 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
         detec_info->track_boxes.clear();
         detec_info->track_classIds.clear();
         detec_info->track_confidences.clear();
-        objectD->runODModel(image, cam_index);
+        objectD->runODModel(image, cam_index, needDetectPerson, needDetectCar);
     } else {
         // 跟踪算法
         // objectD->runTrackerModel(image);
     }
-    detec_info->index = (detec_info->index + 1) % 30;
+    detec_info->index = (detec_info->index + 1) % 25;
     
     // 计算各个目标的速度与距离
-    vector<float> speeds, distances;
+    // vector<float> speeds, distances;
+    detec_info->track_speeds.clear();
+    detec_info->track_distances.clear();
     if (detec_info->track_boxes_pre.empty() || detec_info->track_boxes.empty() ||
         detec_info->track_boxes_pre.size() != detec_info->track_boxes.size() ||
-        !hasLoadCameraMatrix) {
+        !vec_hasLoadCameraMatrix[cam_index]) {
         // 如果track_boxes_pre没有数据，则表示第一次检测，所有物体速度为0
-        speeds = vector<float>(detec_info->track_boxes.size(), 0.0);
-        distances = vector<float>(detec_info->track_boxes.size(), 0.0);
+        detec_info->track_speeds = vector<float>(detec_info->track_boxes.size(), 0.0);
+        detec_info->track_distances = vector<float>(detec_info->track_boxes.size(), 0.0);
     } else {
         // 只有前后两帧 bboxes 长度一样时
         for (int i=0; i<detec_info->track_boxes.size(); i++) {
-            cv::Point2f pre = getPixelPoint(detec_info->track_boxes_pre[i]);
-            cv::Point2f cur = getPixelPoint(detec_info->track_boxes[i]);
+            // 这里 type=1 表示返回底部中心坐标
+            cv::Point2f pre = getPixelPoint(detec_info->track_boxes_pre[i], 1);
+            cv::Point2f cur = getPixelPoint(detec_info->track_boxes[i], 1);
 
             // 计算真实世界坐标
             cv::Point3f wd_pre = cameraToWorld(pre, cam_index);
@@ -565,11 +937,18 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
             // 这里计算的速度为 像素/秒
             // float dist = sqrt(pow(cur.x-pre.x, 2) + pow(cur.y-pre.y, 2));
             // float speed = dist / float(interval / 25.0);      // 25表示每秒25帧
-            speeds.push_back(speed);
+            
             // 计算物体距离（不考虑高度）
+            float dist_pre = sqrt(pow(wd_pre.x-this->vec_cameraCoord[cam_index].x, 2) + 
+                                    pow(wd_pre.y-vec_cameraCoord[cam_index].y, 2));
             float dist = sqrt(pow(wd_cur.x-this->vec_cameraCoord[cam_index].x, 2) + 
                                     pow(wd_cur.y-vec_cameraCoord[cam_index].y, 2));
-            distances.push_back(dist);
+            // 速度为负表示背离相机运动
+            if(dist_pre < dist){
+                speed *= -1;
+            }
+            detec_info->track_speeds.push_back(speed);
+            detec_info->track_distances.push_back(dist);
         }
     }
 
@@ -580,8 +959,10 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
         int width = detec_info->track_boxes[i].width;
         int height = detec_info->track_boxes[i].height;
         objectD->drawPred(detec_info->track_classIds[i], detec_info->track_confidences[i], 
-                      speeds[i], distances[i],  x, y, x+width, y+height, image, needDetectPerson, needDetectCar);
+                      detec_info->track_speeds[i], detec_info->track_distances[i],  x, y, x+width, y+height, 
+                           image, needDetectPerson, needDetectCar);
     }
+
     // if (detec_info->track_confidences.size() > 1) {
     //     for (int i=0; i<detec_info->track_confidences.size(); i++) {
     //         std::cout << detec_info->track_confidences[i] << " ";
@@ -598,15 +979,32 @@ void MainWindow::exit() {
  * @brief 返回物体像素坐标
  * 
  * @param rect 
+ * @param type 返回质心:0或底部中心:1
  * @return cv::Point2f 
  */
-cv::Point2f MainWindow::getPixelPoint(Rect &rect) {
+cv::Point2f MainWindow::getPixelPoint(Rect &rect, int type) {
     int x = rect.x;
     int y = rect.y;
     int width = rect.width;
     int height = rect.height;
-    // return cv::Point2f(x+width/2, y+height/2);   // 质心坐标
+    if (type == 0) {
+        return cv::Point2f(x+width/2, y+height/2);   // 质心坐标
+    }
     return cv::Point2f(x+width/2, y+height);        // 底部中心坐标
+}
+
+int MainWindow::leftOrRight(double k, double b, cv::Point2i p){
+    double x = (double)p.x;
+    double y = -(double)p.y;
+    double l = k * x + b;
+    if(k > 0) {
+         if(y > l) return 0;
+         else return 1;
+    }
+    else{
+        if(y > l) return 0;
+        else return 1;
+    }
 }
 
 
