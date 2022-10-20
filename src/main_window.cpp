@@ -28,11 +28,11 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 	ui.setupUi(this); 
     configP = new ConfigPanel();        // 初始化 connect 页面
     trafficD = new TrafficDetail();     // 交通事件展示对话框
-    objectD = new ObjectDetection(2);    // 初始化 检测对象对象
+    objectD = new ObjectDetection(4);    // 初始化 检测对象对象
 
     hasLoadCameraMatrix = false;        // 当前未加载相加参数
     image_size = cv::Size(1280, 720);
-    cam_num = 2;        // 临时设置相机数量
+    cam_num = 4;        // 临时设置相机数量
     event_num = 5;
     interval = 5;       // 物体检测间隔
 
@@ -184,7 +184,7 @@ void MainWindow::initial() {
  * 
  */
 void MainWindow::loadCameraMatrix2() {
-    QString filename = QFileDialog::getOpenFileName(this, "Open", "./", "(*.yml)");
+    QString filename = QFileDialog::getOpenFileName(this, "Open", "./src/mul_t/config/", "(*.yml)");
     if (filename.isEmpty()) 
         return;
 
@@ -397,7 +397,7 @@ void MainWindow::menu_pop_config() {
 
 void MainWindow::menu_pop_load_config() {
     qDebug() << "menu_pop_load_config";
-    QString filename = QFileDialog::getOpenFileName(this, "Open", "./", "(*.yml)");
+    QString filename = QFileDialog::getOpenFileName(this, "Open", "./src/mul_t/config/", "(*.yml)");
     if (filename.isEmpty()) 
         return;
 

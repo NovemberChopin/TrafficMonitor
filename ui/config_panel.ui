@@ -67,12 +67,12 @@
           <widget class="QLabel" name="label">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
            <property name="text">
-            <string>ROS 地址</string>
+            <string>ROS Master</string>
            </property>
           </widget>
          </item>
@@ -95,12 +95,12 @@
           <widget class="QLabel" name="label_2">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
            <property name="text">
-            <string>端口号</string>
+            <string>本机IP</string>
            </property>
           </widget>
          </item>
@@ -123,7 +123,7 @@
           <widget class="QLabel" name="label_3">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
@@ -151,7 +151,7 @@
           <widget class="QLabel" name="label_4">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
@@ -179,7 +179,7 @@
           <widget class="QLabel" name="label_5">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
@@ -213,7 +213,7 @@
           <widget class="QLabel" name="label_6">
            <property name="minimumSize">
             <size>
-             <width>80</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
