@@ -43,9 +43,6 @@ public:
 
 	void initial();
 
-	void loadCameraMatrix2();
-	void loadCameraMatrix();	// 生成相机的姿态（旋转和平移）
-
 	cv::Point3f cameraToWorld(cv::Point2f point, int cam_index);
 
 	cv::Point2f getPixelPoint(Rect &rect, int type);		// 计算检测框的像素坐标

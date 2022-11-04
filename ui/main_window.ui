@@ -66,13 +66,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_loadMatrix">
-            <property name="text">
-             <string>加载相机参数</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QPushButton" name="btn_quit">
             <property name="text">
              <string>退出</string>

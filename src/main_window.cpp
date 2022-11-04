@@ -72,7 +72,6 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(ui.btn_quit, &QPushButton::clicked, this, &MainWindow::exit);
     // QTableWidget 单元格点击事件 SLOT
     QObject::connect(ui.consoleTable ,SIGNAL(itemClicked(QTableWidgetItem*)), this, SLOT(consoleClick(QTableWidgetItem*)));
-    QObject::connect(ui.btn_loadMatrix, &QPushButton::clicked, this, &MainWindow::loadCameraMatrix2);
     QObject::connect(&qnode, SIGNAL(getImage(cv::Mat, int)), this, SLOT(setImage(cv::Mat, int)));
     
     //接收登录页面传来的数据
@@ -177,80 +176,6 @@ void MainWindow::initial() {
     QString qss = darcula_qss;
     qApp->setStyleSheet(qss);
 }
-
-
-/**
- * @brief 手动加载相机参数，计算相机姿态
- * 
- */
-void MainWindow::loadCameraMatrix2() {
-    QString filename = QFileDialog::getOpenFileName(this, "Open", "./src/mul_t/config/", "(*.yml)");
-    if (filename.isEmpty()) 
-        return;
-
-    cv::Mat cameraMatrix, distCoeffs;
-    cv::Mat rotationVector, rotationMatrix, transVector;
-    cv::Mat map1, map2;
-    std::vector<cv::Point2f> image_points;
-    std::vector<cv::Point3f> world_points;
-    for (int i=0; i<cam_num; i++) {
-        cv::FileStorage cameraPameras(filename.toStdString(), cv::FileStorage::READ);
-        cameraPameras[format("camera_matrix_%d", i)] >> cameraMatrix;
-        cameraPameras[format("dist_coeffs_%d", i)] >> distCoeffs;
-        // std::cout << "cameraMatrix: " << cameraMatrix << std::endl;
-        // std::cout << "distCoeffs: " << distCoeffs << std::endl;
-        this->vec_cameraMatrix.push_back(cameraMatrix);
-        this->vec_distCoeffs.push_back(distCoeffs);
-        // 计算相机姿态
-        cameraPameras["imagepoints"] >> image_points;
-        cameraPameras["worldpoints"] >> world_points;
-        // std::cout << image_points << std::endl;
-        // std::cout << world_points << std::endl;
-        solvePnP(world_points, image_points, cameraMatrix, distCoeffs, rotationVector, transVector);
-	    Rodrigues(rotationVector, rotationMatrix);
-        this->vec_rotationMatrix.push_back(rotationMatrix);
-        this->vec_transVector.push_back(transVector);
-        // 计算修复畸变的映射矩阵
-        cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, Mat(), cameraMatrix, image_size, CV_16SC2, map1, map2);
-        this->vec_map1.push_back(map1);
-        this->vec_map2.push_back(map2);
-
-        this->vec_cameraCoord.push_back(cv::Point3f(0.12, -2.9, 0));  
-    }
-    this->hasLoadCameraMatrix = true;
-}
-
-
-
-// void MainWindow::loadCameraMatrix() {
-//     cv::Mat rotationVector, rotationMatrix, transVector;
-//     std::vector<cv::Point2f> image_points;
-//     std::vector<cv::Point3f> world_points;
-//     // Load intrinsics and points.
-// 	cv::FileStorage intrin("/home/js/leishen_ws/src/mul_t/config/intrinsics.yml", cv::FileStorage::READ);
-// 	cv::FileStorage points("/home/js/leishen_ws/src/mul_t/config/pointssets.yml", cv::FileStorage::READ);
-// 	cv::FileStorage extrin("/home/js/leishen_ws/src/mul_t/config/extrinsics.yml", cv::FileStorage::WRITE);
-// 	intrin["camera_matrix"] >> cameraMatrix;
-// 	intrin["dist_coeffs"] >> distCoeffs;
-// 	points["imagepoints"] >> image_points;
-// 	points["worldpoints"] >> world_points;
-//     std::cout << image_points << std::endl;
-//     std::cout << world_points << std::endl;
-// 	// Generate our matrix; rvec and tvec are the output.
-// 	solvePnP(world_points, image_points, cameraMatrix, distCoeffs, rotationVector, transVector);
-// 	Rodrigues(rotationVector, rotationMatrix);
-
-//     this->rotationMatrix = rotationMatrix;
-//     this->transVector = transVector;
-// 	// Save the results
-// 	// extrin << "rotationmatrix" << rotationMatrix;
-// 	// extrin << "translationvector" << transVector;
-
-//     // 初始化相机坐标，不考虑高度
-//     this->cameraCoord = cv::Point3f(0.12, -2.9, 0);
-
-//     this->hasLoadCameraMatrix = true;
-// }
 
 
 void MainWindow::setEventTable() {
