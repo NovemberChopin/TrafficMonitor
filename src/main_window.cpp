@@ -228,12 +228,6 @@ void MainWindow::consoleClick(QTableWidgetItem* item) {
     trafficD->show();
 }
 
-void MainWindow::showNoMasterMessage() {
-	QMessageBox msgBox;
-	msgBox.setText("找不到ROS服务器");
-	msgBox.exec();
-    close();
-}
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     if (event->type() == QEvent::MouseButtonDblClick) {
@@ -512,12 +506,18 @@ void MainWindow::showConfigPanel() {
 void MainWindow::connectByConfig(ConfigInfo *config) {
     qDebug() << "--------- Config Info ---------";
     qDebug() << config->ros_address;
-    qDebug() << config->port;
+    qDebug() << config->localhost;
+    // for (int i=0; i<config->imageTopics.size(); i++) {
+    //     qDebug() << config->imageTopics[i];
+    // }
     if (!qnode.init(config)) {
         // 连接失败
-        showNoMasterMessage();
+        qDebug() << "连接ROS失败";
+        // showNoMasterMessage();
+        QMessageBox::information(this, "提示", "ROS连接失败，请检查Master地址");
     } else {
         // 连接成功
+        qDebug() << "连接ROS成功";
         ui.btn_config_ros->setEnabled(false);
     }
 }

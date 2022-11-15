@@ -30,7 +30,7 @@
 
 struct ConfigInfo {
 	QString ros_address;
-	QString port;
+	QString localhost;
 	std::vector<QString> imageTopics;
 };
 
@@ -42,7 +42,6 @@ public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
 	bool init(ConfigInfo *config);
-	bool init(const std::string &master_url, const std::string &host_url, const std::string &topic);
 
 	void run();
 

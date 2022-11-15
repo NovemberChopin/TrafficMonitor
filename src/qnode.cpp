@@ -52,50 +52,23 @@ void QNode::Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index) {
 
 
 bool QNode::init(ConfigInfo *config) {
-	// 把话题信息给本地成员变量
 	this->configInfo = config;
-
-	ros::init(init_argc,init_argv,"Monitor");
-	if ( ! ros::master::check() ) {
+	std::map<std::string,std::string> remappings;
+	remappings["__master"] = config->ros_address.toStdString();
+	remappings["__hostname"] = config->localhost.toStdString();
+	// ros::init(remappings, "traffic_monitor");
+	ros::init(init_argc, init_argv, "traffic_monitor");
+	if (!ros::master::check()) {
 		return false;
 	}
 	ros::start();
 
-	this->start();	// 启动线程
+	start();
 	return true;
 }
 
-
-bool QNode::init(const std::string &master_url, const std::string &host_url, const std::string &topic) {
-	// std::map<std::string,std::string> remappings;
-	// remappings["__master"] = master_url;
-	// remappings["__hostname"] = host_url;
-	// ros::init(remappings,"mul_t");
-	// if ( ! ros::master::check() ) {
-	// 	return false;
-	// }
-	// ros::start();
-	// ros::NodeHandle n;
-  	// image_transport::ImageTransport it(n);
-
-  	// image_sub = it.subscribe(topic, 1, &QNode::Callback_1, this);
-	// start();
-	return true;
-}
 
 void QNode::run() {
-  	// ros::spin();
-
-	// 订阅多个Topic，多个Spinner threads
-	// ros::NodeHandle n;
-  	// image_transport::ImageTransport it(n);
-    // // image_sub = it.subscribe("/camera/hik_image", 5, &QNode::Callback_1, this);
-  	// image_sub = it.subscribe("/hik_cam_node/hik_camera", 5, &QNode::Callback_1, this);
-	// image_sub2 = it.subscribe("/hik_image", 1, &QNode::Callback_2, this);
-	// ros::MultiThreadedSpinner spinner(2);
-	// spinner.spin();
-
-
 	// 订阅多个Topic，每个Subscriber有一个Callback queue
 	std::string topic;
 	ros::NodeHandle n_a;
