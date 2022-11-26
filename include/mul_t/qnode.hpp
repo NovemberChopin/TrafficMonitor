@@ -4,11 +4,14 @@
 #define mul_t_QNODE_HPP_
 
 
-#ifndef Q_MOC_RUN
-#include <ros/ros.h>
-#endif
 
+#include <ros/ros.h>
+#include <ros/network.h>
 #include <ros/callback_queue.h>
+#include <std_msgs/String.h>
+#include "sensor_msgs/CompressedImage.h"
+#include "sensor_msgs/image_encodings.h"
+
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -47,9 +50,14 @@ public:
 
   	void Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index); //camera callback function
 
+	void Callback_C1(const sensor_msgs::CompressedImageConstPtr &msg);
+	void Callback_C2(const sensor_msgs::CompressedImageConstPtr &msg);
+	void Callback_C3(const sensor_msgs::CompressedImageConstPtr &msg);
+	void Callback_C4(const sensor_msgs::CompressedImageConstPtr &msg);
 
 Q_SIGNALS:
     void rosShutdown();
+
     void getImage(cv::Mat, int cam_index);
 
 private:
@@ -62,6 +70,12 @@ private:
 	image_transport::Subscriber image_sub2;
 	image_transport::Subscriber image_sub3;
 	image_transport::Subscriber image_sub4;
+
+	ros::Subscriber sub_img_C1;		// 订阅压缩图像
+	ros::Subscriber sub_img_C2;
+	ros::Subscriber sub_img_C3;
+	ros::Subscriber sub_img_C4;
+	
 };
 
 

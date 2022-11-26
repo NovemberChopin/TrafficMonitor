@@ -16,9 +16,9 @@ ConfigPanel::ConfigPanel(QWidget *parent) :
 
     QObject::connect(ui->ros_connect, &QPushButton::clicked, this, &ConfigPanel::ros_connect_clicked);
 
-    ui->ros_address->setText("http://127.0.0.1:11311");
-    ui->ros_port->setText("127.0.0.1");
-    ui->ros_topic_1->setText("/hik_cam_node1/hik_camera");
+    ui->ros_address->setText("http://192.168.43.123:11311");
+    ui->ros_port->setText("192.168.43.123");
+    ui->ros_topic_1->setText("/hik_cam_node/hik_camera/compressed");
     ui->ros_topic_2->setText("/hik_cam_node2/hik_camera");
     ui->ros_topic_3->setText("/hik_cam_node3/hik_camera");
     ui->ros_topic_4->setText("/hik_cam_node4/hik_camera");

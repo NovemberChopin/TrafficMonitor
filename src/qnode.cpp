@@ -51,6 +51,53 @@ void QNode::Callback(const sensor_msgs::ImageConstPtr &msg, int cam_index) {
 }
 
 
+/**
+ * @brief 压缩图像回调函数
+ */
+void QNode::Callback_C1(const sensor_msgs::CompressedImageConstPtr &msg) {
+	cv::Mat img;
+    try {
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+		Q_EMIT getImage(img, 0);		// cam_index 从 0 开始
+    } catch (cv_bridge::Exception& e) {
+		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
+    }
+}
+
+
+void QNode::Callback_C2(const sensor_msgs::CompressedImageConstPtr &msg) {
+	cv::Mat img;
+    try {
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+		Q_EMIT getImage(img, 1);		// cam_index 从 0 开始
+    } catch (cv_bridge::Exception& e) {
+		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
+    }
+}
+
+
+void QNode::Callback_C3(const sensor_msgs::CompressedImageConstPtr &msg) {
+	cv::Mat img;
+    try {
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+		Q_EMIT getImage(img, 2);		// cam_index 从 0 开始
+    } catch (cv_bridge::Exception& e) {
+		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
+    }
+}
+
+
+void QNode::Callback_C4(const sensor_msgs::CompressedImageConstPtr &msg) {
+	cv::Mat img;
+    try {
+        cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+		Q_EMIT getImage(img, 3);		// cam_index 从 0 开始
+    } catch (cv_bridge::Exception& e) {
+		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
+    }
+}
+
+
 bool QNode::init(ConfigInfo *config) {
 	this->configInfo = config;
 	std::map<std::string,std::string> remappings;
@@ -74,10 +121,14 @@ void QNode::run() {
 	ros::NodeHandle n_a;
 	ros::CallbackQueue callback_queue_a;
 	n_a.setCallbackQueue(&callback_queue_a);
-	image_transport::ImageTransport it(n_a);
 	// 0 表示 Callback 的第二个参数 cam_index
 	topic = this->configInfo->imageTopics.at(0).toStdString();
-	image_sub = it.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 0));
+	if (topic.find("compressed") != std::string::npos) {
+		sub_img_C1 = n_a.subscribe(topic, 1, &QNode::Callback_C1, this);
+	} else {
+		image_transport::ImageTransport it(n_a);
+		image_sub = it.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 0));
+	}
 	std::thread spinner_thread_a([&callback_queue_a](){
 		ros::SingleThreadedSpinner spinner_a;
 		spinner_a.spin(&callback_queue_a);
@@ -86,9 +137,13 @@ void QNode::run() {
 	ros::NodeHandle n_b;
 	ros::CallbackQueue callback_queue_b;
 	n_b.setCallbackQueue(&callback_queue_b);
-	image_transport::ImageTransport it_b(n_b);
 	topic = this->configInfo->imageTopics.at(1).toStdString();
-	image_sub2 = it_b.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 1));
+	if (topic.find("compressed") != std::string::npos) {
+		sub_img_C2 = n_b.subscribe(topic, 1, &QNode::Callback_C2, this);
+	} else {
+		image_transport::ImageTransport it_b(n_b);
+		image_sub2 = it_b.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 1));
+	}
 	std::thread spinner_thread_b([&callback_queue_b](){
 		ros::SingleThreadedSpinner spinner_b;
 		spinner_b.spin(&callback_queue_b);
@@ -97,9 +152,13 @@ void QNode::run() {
 	ros::NodeHandle n_c;
 	ros::CallbackQueue callback_queue_c;
 	n_c.setCallbackQueue(&callback_queue_c);
-	image_transport::ImageTransport it_c(n_c);
 	topic = this->configInfo->imageTopics.at(2).toStdString();
-	image_sub3 = it_c.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 2));
+	if (topic.find("compressed") != std::string::npos) {
+		sub_img_C3 = n_c.subscribe(topic, 1, &QNode::Callback_C3, this);
+	} else {
+		image_transport::ImageTransport it_c(n_c);
+		image_sub3 = it_c.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 2));
+	}
 	std::thread spinner_thread_c([&callback_queue_c](){
 		ros::SingleThreadedSpinner spinner_c;
 		spinner_c.spin(&callback_queue_c);
@@ -108,9 +167,13 @@ void QNode::run() {
 	ros::NodeHandle n_d;
 	ros::CallbackQueue callback_queue_d;
 	n_d.setCallbackQueue(&callback_queue_d);
-	image_transport::ImageTransport it_d(n_d);
 	topic = this->configInfo->imageTopics.at(3).toStdString();
-	image_sub4 = it_d.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 3));
+	if (topic.find("compressed") != std::string::npos) {
+		sub_img_C4 = n_d.subscribe(topic, 1, &QNode::Callback_C4, this);
+	} else {
+		image_transport::ImageTransport it_d(n_d);
+		image_sub4 = it_d.subscribe(topic, 1, boost::bind(&QNode::Callback, this, _1, 3));
+	}
 	std::thread spinner_thread_d([&callback_queue_d](){
 		ros::SingleThreadedSpinner spinner_d;
 		spinner_d.spin(&callback_queue_d);
