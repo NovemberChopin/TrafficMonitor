@@ -553,7 +553,11 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
 
     // 物体检测（跟踪）过程
     if (this->needDetectPerson || this->needDetectCar) {
-        processOD(imageCalib, interval, cam_index);
+        if (videoMax == false) {    // 如果非最大化情况下：检测所有的画面
+            processOD(imageCalib, interval, cam_index);
+        } else if (maxVideoIndex == cam_index) {    // 如果有相机画面最大化了，就只检测当前最大化的画面
+            processOD(imageCalib, interval, cam_index);
+        }
     }
     else{
         DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
