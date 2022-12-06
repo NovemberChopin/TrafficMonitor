@@ -58,7 +58,9 @@ void QNode::Callback_C1(const sensor_msgs::CompressedImageConstPtr &msg) {
 	cv::Mat img;
     try {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
-		Q_EMIT getImage(img, 0);		// cam_index 从 0 开始
+		// cv::imshow("img", cv_ptr->image);
+		// cv::waitKey(0);
+		Q_EMIT getImage(cv_ptr->image, 0);		// cam_index 从 0 开始
     } catch (cv_bridge::Exception& e) {
 		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
     }
@@ -69,7 +71,7 @@ void QNode::Callback_C2(const sensor_msgs::CompressedImageConstPtr &msg) {
 	cv::Mat img;
     try {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
-		Q_EMIT getImage(img, 1);		// cam_index 从 0 开始
+		Q_EMIT getImage(cv_ptr->image, 1);		// cam_index 从 0 开始
     } catch (cv_bridge::Exception& e) {
 		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
     }
@@ -80,7 +82,7 @@ void QNode::Callback_C3(const sensor_msgs::CompressedImageConstPtr &msg) {
 	cv::Mat img;
     try {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
-		Q_EMIT getImage(img, 2);		// cam_index 从 0 开始
+		Q_EMIT getImage(cv_ptr->image, 2);		// cam_index 从 0 开始
     } catch (cv_bridge::Exception& e) {
 		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
     }
@@ -91,7 +93,7 @@ void QNode::Callback_C4(const sensor_msgs::CompressedImageConstPtr &msg) {
 	cv::Mat img;
     try {
         cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
-		Q_EMIT getImage(img, 3);		// cam_index 从 0 开始
+		Q_EMIT getImage(cv_ptr->image, 3);		// cam_index 从 0 开始
     } catch (cv_bridge::Exception& e) {
 		ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->format.c_str());
     }
