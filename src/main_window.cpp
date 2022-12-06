@@ -868,8 +868,8 @@ void MainWindow::processOD(cv::Mat &image, int interval, int cam_index) {
                                     pow(wd_pre.y-vec_cameraCoord[cam_index].y, 2));
             float dist = sqrt(pow(wd_cur.x-this->vec_cameraCoord[cam_index].x, 2) + 
                                     pow(wd_cur.y-vec_cameraCoord[cam_index].y, 2));
-            // 速度为负表示背离相机运动
-            if(dist_pre < dist){
+            // 定义远离相机为正，靠近相机速度为负
+            if(dist < dist_pre){
                 speed *= -1;
             }
             detec_info->track_speeds.push_back(speed);
