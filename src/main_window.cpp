@@ -232,19 +232,36 @@ void MainWindow::consoleClick(QTableWidgetItem* item) {
 }
 
 
+bool MainWindow::isDetecEvent() {
+    for (int i=0; i<this->hasDetecEvent.size(); i++) {
+        if (this->hasDetecEvent[i] == true) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     if (event->type() == QEvent::MouseButtonDblClick) {
         QLabel *widget = (QLabel *) obj;
         if (videoMax) {
             // 当前为最大化状态，首先把当前的画面移除
-            labelWidth = widget->width() / 2;
-            labelHeight = widget->height() / 2;
-            ui.camera_0->setVisible(true);
-            ui.camera_1->setVisible(true);
-            ui.camera_2->setVisible(true);
-            ui.camera_3->setVisible(true);
-            this->maxVideoIndex = -1;
-        } else {
+            if (!this->isDetecEvent()) {
+                labelWidth = widget->width() / 2;
+                labelHeight = widget->height() / 2;
+                ui.camera_0->setVisible(true);
+                ui.camera_1->setVisible(true);
+                ui.camera_2->setVisible(true);
+                ui.camera_3->setVisible(true);
+                this->maxVideoIndex = -1;
+
+                videoMax = !videoMax;
+            } else {
+                QMessageBox::information(this, "注意", "请先关闭所有事件检测");
+            }
+            
+        } else {    // 当前为最大化展示状态，将其最大化
             // 根据widget坐标获取widget的index
             int x = widget->geometry().x();
             int y = widget->geometry().y();
@@ -257,7 +274,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             } else {
                 this->maxVideoIndex = 3;    // cmaera_3
             }
-            // 当前未正产状态，需要将其最大化
+            
             labelWidth = widget->width() * 2;
             labelHeight = widget->height() * 2;
             ui.camera_0->setVisible(false);
@@ -266,8 +283,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             ui.camera_3->setVisible(false);
 
             widget->setVisible(true);
+            videoMax = !videoMax;
         }
-        videoMax = !videoMax;
         qDebug() << "videoMax: " << videoMax;
         qDebug() << "maxVideoIndex: " << maxVideoIndex;
     }
@@ -411,11 +428,16 @@ void MainWindow::slot_reverse_event() {
     this->trafficD->showPopInfo(0);
 }
 
-void MainWindow::slot_block_event() {
-    if (hasDetecEvent[1] == true) {
-        hasDetecEvent[1] = false;
-        detec_event_index[1] = -1;
-        ui.btn_block->setStyleSheet("");
+void MainWindow::slot_block_event() {       // 交通拥堵
+    if (hasDetecEvent[1] == true) {         // 如果事件在开启状态，则关闭之
+        hasDetecEvent[1] = false;           // 修改标识位
+        detec_event_index[1] = -1;          // 图像帧循环计数设置为 -1
+        // 这里不知道那一个相机检测事件，就把该事件的所有相机的ROS面积赋值为 0
+        for (int i=0; i<vec_roi.size(); i++) {  
+            this->vec_roi[i][1].width = 0;
+            this->vec_roi[i][1].height = 0;
+        }
+        ui.btn_block->setStyleSheet("");    // 清除样式
         QMessageBox::information(this, "提示", "车辆拥堵事件检测停止");
         return;
     }
@@ -645,7 +667,7 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
         if (hasDetecEvent[i] == true) {
             // 如果事件开启，则相应的计数器开始计数
             detec_event_index[i] = (detec_event_index[i] + 1) % event_detec_interval;
-            std::cout << "---: i: " << detec_event_index[i] << std::endl;
+            std::cout << "---: i: " << i << " detec_event_index: " << detec_event_index[i] << std::endl;
         }
     }
 
@@ -702,8 +724,8 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
         }             
     }
 
-    // 检测交通拥堵事件
-    if (vec_roi[cam_index][1].width != 0) {
+    // 检测交通拥堵事件条件：开启相应事件检测、选取ROI、当前帧为检测帧
+    if (hasDetecEvent[1] && vec_roi[cam_index][1].width != 0 && detec_event_index[1] == 0) {
         // std::cout << "rect: " << vec_roi[cam_index][3] << std::endl;
         DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
         int carInRoi_num = 0;
@@ -739,7 +761,7 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
             TrafficEvent* traffic = new TrafficEvent(time_str, "交通拥堵", "高", "正确", tmpImg);
             trafficList.push_back(traffic);
             this->addTrafficEvent(traffic);             // 添加进事件展示列表
-            vec_roi[cam_index][1].width = 0;
+            // vec_roi[cam_index][1].width = 0;
         }
     }
 

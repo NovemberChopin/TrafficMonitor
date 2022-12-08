@@ -50,6 +50,7 @@ public:
 	int leftOrRight(double k, double b, cv::Point2i p);   // 在线左返回0，线右返回1
 
 	// void contextMenuEvent(QContextMenuEvent * ev);
+	bool isDetecEvent();		// 检测当前事件检测有没有开启
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event);
