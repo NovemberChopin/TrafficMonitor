@@ -475,8 +475,12 @@ void MainWindow::slot_changeLine_event() {
 
 void MainWindow::slot_park_event() {
     if (hasDetecEvent[3] == true) {
-        hasDetecEvent[3] == false;
+        hasDetecEvent[3] = false;
         detec_event_index[3] = -1;
+        for (int i=0; i<vec_roi.size(); i++) {
+            this->vec_roi[i][3].width = 0;
+            this->vec_roi[i][3].height = 0;
+        }
         ui.btn_park->setStyleSheet("");
         QMessageBox::information(this, "提示", "异常停车事件检测停止");
         return;
@@ -641,7 +645,7 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
         if (hasDetecEvent[i] == true) {
             // 如果事件开启，则相应的计数器开始计数
             detec_event_index[i] = (detec_event_index[i] + 1) % event_detec_interval;
-            std::cout << "---: " << detec_event_index[i] << std::endl;
+            std::cout << "---: i: " << detec_event_index[i] << std::endl;
         }
     }
 
@@ -791,13 +795,14 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     }
 
 
-    // 检测异常停车事件
-    if (vec_roi[cam_index][3].width != 0) {
+    // 检测异常停车事件条件：开启相应事件检测、选取ROI、当前帧为检测帧
+    if (hasDetecEvent[3] && vec_roi[cam_index][3].width != 0 && detec_event_index[3] == 0) {
         // std::cout << "rect: " << vec_roi[cam_index][3] << std::endl;
         DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
         for (int i=0; i < detec_info->track_classIds.size(); i++) {
              // 如果物体id为1 : car 且速度为0
-            if (detec_info->track_classIds[i] > 0 && detec_info->track_speeds[i] == 0) { 
+             // 如果物体id为1: car. 由于未加跟踪算法，速度计算不精准，这里速度在 [-0.5, 0.5] 之间都算静止状态
+            if (detec_info->track_classIds[i] > 0 && abs(detec_info->track_speeds[i]) < 0.5) { 
                 // 计算检测框的质心
                 int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
                 int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height / 2;
@@ -815,7 +820,7 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
                     TrafficEvent* traffic = new TrafficEvent(time_str, "异常停车", "高", "正确", tmpImg);
                     trafficList.push_back(traffic);
                     this->addTrafficEvent(traffic);             // 添加进事件展示列表
-                    vec_roi[cam_index][3].width = 0;
+                    // vec_roi[cam_index][3].width = 0;
                     break;
                 }
             }
@@ -841,7 +846,7 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
                     QString time_str = time.toString("MM-dd hh:mm:ss"); // 设置显示格式
                     cv::Mat tmpImg ;
                     cur_frame.copyTo(tmpImg);
-                    TrafficEvent* traffic = new TrafficEvent(time_str, "弱势闯入", "高", "正确", tmpImg);
+                    TrafficEvent* traffic = new TrafficEvent(time_str, "弱势交通参与者闯入", "高", "正确", tmpImg);
                     trafficList.push_back(traffic);
                     this->addTrafficEvent(traffic);             // 添加进事件展示列表
                     // vec_roi[cam_index][4].width = 0;
