@@ -17,6 +17,7 @@
 #include <QMouseEvent>
 #include <QMutex>
 #include <cmath>
+#include <QLabel>
 
 
 namespace mul_t {
@@ -123,7 +124,9 @@ private:
 	// camera_num x event_num
 	std::vector<std::vector<cv::Rect> > vec_roi;
 	std::vector<std::vector<std::vector<double>>> vec_line;
-
+	int event_detec_interval;						// 对于一个相机事件检测的间隔
+	std::vector<bool> hasDetecEvent = std::vector<bool>(5, false);		// 对应五种事件是否开始检测
+	std::vector<int> detec_event_index = std::vector<int>(5, -1);			// 没个事件检测的间隔
 	// 右键弹窗变量
 	QMenu *m_pOptMenu;
 	QAction *m_pConfigAction;

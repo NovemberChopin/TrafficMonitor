@@ -28,10 +28,10 @@ TrafficDetail::TrafficDetail(QWidget *parent) : QMainWindow(parent) {
     this->trafficLinePage = this->init_trafficLine_page();
     this->configCameraPage = this->init_configCamera_page();
     this->stackWidget = new QStackedWidget(this);
-    this->stackWidget->addWidget(showImagePage);
-    this->stackWidget->addWidget(getROIPage);
-    this->stackWidget->addWidget(trafficLinePage);
-    this->stackWidget->addWidget(configCameraPage);
+    this->stackWidget->addWidget(showImagePage);    // index: 0
+    this->stackWidget->addWidget(getROIPage);       // index: 1
+    this->stackWidget->addWidget(trafficLinePage);  // index: 2
+    this->stackWidget->addWidget(configCameraPage); // index: 3
     this->setCentralWidget(stackWidget);
 }
 
@@ -93,7 +93,7 @@ void TrafficDetail::confirmPoints(){
         int y2 = -two_points[1].y;
         double k = (double)(y2-y1)/(double)(x2-x1);
         double b = (double)y1 - k*(double)x1;
-        std::cout<<"k: "<<k<<"b: "<<b<<std::endl;
+        std::cout<<"k: "<<k<<" b: "<<b<< " cam: " << cam_index << " event: " << event_index << std::endl;
         Q_EMIT this->getLine(k, b, this->cam_index, event_index);
         this->close();
     }
