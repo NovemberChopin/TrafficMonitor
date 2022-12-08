@@ -401,8 +401,12 @@ void MainWindow::slot_reverse_event() {
     if (hasDetecEvent[0] == true) {
         hasDetecEvent[0] = false;
         detec_event_index[0] = -1;
+        for (int i=0; i<vec_line.size(); i++) {
+            this->vec_line[i][0][0] = 0;
+            this->vec_line[i][0][1] = 0;
+        }
         ui.btn_reverse->setStyleSheet("");
-        QMessageBox::information(this, "提示", "车辆逆行事件事件停止");
+        // QMessageBox::information(this, "提示", "车辆逆行事件事件停止");
         return;
     }
     qDebug() << "slot_reverse_event";
@@ -438,7 +442,7 @@ void MainWindow::slot_block_event() {       // 交通拥堵
             this->vec_roi[i][1].height = 0;
         }
         ui.btn_block->setStyleSheet("");    // 清除样式
-        QMessageBox::information(this, "提示", "车辆拥堵事件检测停止");
+        // QMessageBox::information(this, "提示", "车辆拥堵事件检测停止");
         return;
     }
     qDebug() << "slot_block_event";
@@ -468,8 +472,12 @@ void MainWindow::slot_changeLine_event() {
     if (hasDetecEvent[2] == true) {
         hasDetecEvent[2] = false;
         detec_event_index[2] = -1;
+        for (int i=0; i<vec_line.size(); i++) {
+            this->vec_line[i][2][0] = 0;
+            this->vec_line[i][2][1] = 0;
+        }
         ui.btn_changeLine->setStyleSheet("");
-        QMessageBox::information(this, "提示", "异常变道事件检测停止");
+        // QMessageBox::information(this, "提示", "异常变道事件检测停止");
         return;
     }
     qDebug() << "slot_changeLine_event";
@@ -504,7 +512,7 @@ void MainWindow::slot_park_event() {
             this->vec_roi[i][3].height = 0;
         }
         ui.btn_park->setStyleSheet("");
-        QMessageBox::information(this, "提示", "异常停车事件检测停止");
+        // QMessageBox::information(this, "提示", "异常停车事件检测停止");
         return;
     }
     qDebug() << "slot_park_event";
@@ -540,7 +548,7 @@ void MainWindow::slot_intrude_event() {
             this->vec_roi[i][4].height = 0;
         }
         ui.btn_intrude->setStyleSheet("");  // 移除样式
-        QMessageBox::information(this, "提示", "弱势交通参与者闯入事件检测停止");
+        // QMessageBox::information(this, "提示", "弱势交通参与者闯入事件检测停止");
         return;
     }
     qDebug() << "slot_intrude_event";
@@ -601,15 +609,15 @@ void MainWindow::setROI(QRect roi, int cam_index, int event_index) {
     // std::cout << "vec_roi[0][4]: " << vec_roi[cam_index][event_index] << std::endl;
     if (event_index == 1) {     // 交通拥堵事件
         hasDetecEvent[1] = true;
-        QMessageBox::information(this, "提示", "开启检测交通拥堵事件");
+        // QMessageBox::information(this, "提示", "开启检测交通拥堵事件");
         ui.btn_block->setStyleSheet("#btn_block{background-color: rgb(1, 42, 53); color: rgb(0, 212, 222);}");
     } else if (event_index == 3) {
         hasDetecEvent[3] = true;
-        QMessageBox::information(this, "提示", "开启检测异常停车事件");
+        // QMessageBox::information(this, "提示", "开启检测异常停车事件");
         ui.btn_park->setStyleSheet("#btn_park{background-color: rgb(1, 42, 53); color: rgb(0, 212, 222);}");
     } else if (event_index == 4) {
         hasDetecEvent[4] = true;
-        QMessageBox::information(this, "提示", "开启检测弱势交通参与者闯入事件");
+        // QMessageBox::information(this, "提示", "开启检测弱势交通参与者闯入事件");
         ui.btn_intrude->setStyleSheet("#btn_intrude{background-color: rgb(1, 42, 53); color: rgb(0, 212, 222);}");
     }
 }
@@ -624,12 +632,12 @@ void MainWindow::setLine(double k, double b, int cam_index, int event_index) {
     
     if (event_index == 0) {     // 逆行事件开启
         hasDetecEvent[0] = true;        
-        QMessageBox::information(this, "提示", "开启检测交通逆行事件");
+        // QMessageBox::information(this, "提示", "开启检测交通逆行事件");
         // 修改按键样式
         ui.btn_reverse->setStyleSheet("#btn_reverse{background-color: rgb(1, 42, 53); color: rgb(0, 212, 222);}");
     } else if (event_index == 2) {      // 异常变道
         hasDetecEvent[2] = true;
-        QMessageBox::information(this, "提示", "开启检测异常变道事件");
+        // QMessageBox::information(this, "提示", "开启检测异常变道事件");
         ui.btn_changeLine->setStyleSheet("#btn_changeLine{background-color: rgb(1, 42, 53); color: rgb(0, 212, 222);}");
     }   
 }
@@ -692,12 +700,12 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
     }
     // imageCalib.copyTo(this->cur_frame[cam_index]);
 
-    // 检测交通逆行事件
-    if(vec_line[cam_index][0][1] != 0) {
+    // 检测交通逆行事件条件：开启相应事件检测、选取车道线、当前帧为检测帧
+    if(hasDetecEvent[0] && vec_line[cam_index][0][1] != 0 && detec_event_index[0] == 0) {
         double k = vec_line[cam_index][0][0];
         double b = vec_line[cam_index][0][1];
         DetectionInfo *detec_info =  objectD->detecRes.at(cam_index);
-        for (int i=0; i < detec_info->track_classIds.size(); i++) {  
+        for (int i=0; i < detec_info->track_classIds.size(); i++) {  // 检测所有行人和车辆是否逆行
             int c_x = detec_info->track_boxes[i].x + detec_info->track_boxes[i].width / 2;
             int c_y = detec_info->track_boxes[i].y + detec_info->track_boxes[i].height;
             cv::Point2i c_point = cv::Point2i(c_x, c_y);
@@ -718,8 +726,8 @@ void MainWindow::setImage(cv::Mat image, int cam_index)
                 TrafficEvent* traffic = new TrafficEvent(time_str, "交通逆行", "高", "正确", tmpImg);
                 trafficList.push_back(traffic);
                 this->addTrafficEvent(traffic);             // 添加进事件展示列表
-                vec_line[cam_index][0][1] = 0;
-                break;
+                // vec_line[cam_index][0][1] = 0;
+                // break;
             }    
         }             
     }
